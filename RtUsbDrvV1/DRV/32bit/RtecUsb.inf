@@ -1,0 +1,139 @@
+; File: Rtecusb.inf
+;
+; Installation information for the R-Technology USB units
+; Copyright 2004, R-Technology Ltd.
+;
+
+[Version]
+Signature="$CHICAGO$"
+Class=%DeviceClassName%
+ClassGUID={B1AD4A45-D147-4ee2-B9B4-F09C5F88D2BA}
+provider=%RTECH%
+LayoutFile=layout.inf
+DriverVer=07/01/2004,1.0.0.0
+
+
+;///////////////////////////////////////////////////////////////////////////////
+;// ClassInstall/ClassInstall32 Section
+
+; Windows-98 installation
+[ClassInstall]
+Addreg=Class_AddReg
+
+; Windows-NT/2000/XP installation
+[ClassInstall32]
+Addreg=Class_AddReg
+
+[Class_AddReg]
+HKR,,,,%DeviceClassName%
+HKR,,Icon,,"-5"
+
+
+;///////////////////////////////////////////////////////////////////////////////
+;// Manufacturer and Models Sections
+
+[Manufacturer]
+%MfgName%=RTech
+
+[RTech]
+%USB\VID_0471&PID_9010.DeviceDesc%=RTECH_USB3000.Dev, USB\VID_0471&PID_9010
+%USB\VID_0471&PID_9020.DeviceDesc%=RTECH_USB2185.Dev, USB\VID_0471&PID_9020
+%USB\VID_0471&PID_9030.DeviceDesc%=RTECH_USB30K.Dev, USB\VID_0471&PID_9030
+
+;///////////////////////////////////////////////////////////////////////////////
+;// DestinationDirs Section
+
+[PreCopySection]
+HKR,,NoSetupUI,,1
+
+[DestinationDirs]
+RTECH.Files.Ext = 10,System32\Drivers
+RTECH.Files.Inf = 10,INF
+
+
+; USB-3000 unit 
+[RTECH_USB3000.Dev]
+CopyFiles=RTECH.Files.Ext,RTECH.Files.Inf
+AddReg=RTECH.AddReg,RTECH_USB3000.AddReg
+
+[RTECH_USB3000.Dev.NT]
+CopyFiles=RTECH.Files.Ext,RTECH.Files.Inf
+AddReg=RTECH_USB3000.AddReg
+
+[RTECH_USB3000.AddReg]
+HKR,"Parameters","BoardType",0x00010001,1
+
+[RTECH_USB3000.Dev.NT.Services]
+Addservice = rtecusb, 0x00000002, RTECH.AddService
+
+
+; USB-2185 unit 
+[RTECH_USB2185.Dev]
+CopyFiles=RTECH.Files.Ext,RTECH.Files.Inf
+AddReg=RTECH.AddReg,RTECH_USB2185.AddReg
+
+[RTECH_USB2185.Dev.NT]
+CopyFiles=RTECH.Files.Ext,RTECH.Files.Inf
+AddReg=RTECH_USB2185.AddReg
+
+[RTECH_USB2185.AddReg]
+HKR,"Parameters","BoardType",0x00010001,3
+
+[RTECH_USB2185.Dev.NT.Services]
+Addservice = rtecusb, 0x00000002, RTECH.AddService
+
+
+; USB30K unit 
+[RTECH_USB30K.Dev]
+CopyFiles=RTECH.Files.Ext,RTECH.Files.Inf
+AddReg=RTECH.AddReg,RTECH_USB30K.AddReg
+
+[RTECH_USB30K.Dev.NT]
+CopyFiles=RTECH.Files.Ext,RTECH.Files.Inf
+AddReg=RTECH_USB30K.AddReg
+
+[RTECH_USB30K.AddReg]
+HKR,"Parameters","BoardType",0x00010001,5
+
+[RTECH_USB30K.Dev.NT.Services]
+Addservice = rtecusb, 0x00000002, RTECH.AddService
+
+
+
+; common part
+[RTECH.AddService]
+DisplayName    = %RTECH.SvcDesc%
+ServiceType    = 1                  ; SERVICE_KERNEL_DRIVER
+StartType      = 2                  ; SERVICE_AUTO_START
+ErrorControl   = 1                  ; SERVICE_ERROR_NORMAL
+ServiceBinary  = %10%\System32\Drivers\rtecusb.sys
+LoadOrderGroup = Base
+
+[RTECH.AddReg]
+HKR,,DevLoader,,*ntkern
+HKR,,NTMPDriver,,rtecusb.sys
+
+[RTECH.Files.Ext]
+rtecusb.sys
+
+[RTECH.Files.Inf]
+rtecusb.inf
+
+
+;---------------------------------------------------------------;
+; UnitType
+; 1 - USB-3000
+; 2 - empty
+; 3 - USB-2185
+; 4 - empty
+; 5 - USB30K
+;---------------------------------------------------------------;
+
+[Strings]
+DeviceClassName="R-Technology Devices"
+RTECH="R-Technology Ltd."
+MfgName="R-Technology"
+USB\VID_0471&PID_9010.DeviceDesc="RT USB-3000 ADC/DAC Unit (USB 2.0)"
+USB\VID_0471&PID_9020.DeviceDesc="RT USB-2185 Unit (USB 2.0)"
+USB\VID_0471&PID_9030.DeviceDesc="RT USB30K QMSystem Crate Controller USB"
+RTECH.SvcDesc="R-Technology USB Driver"

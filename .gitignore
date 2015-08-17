@@ -1,0 +1,67 @@
+# In repository we don't need to have:
+# Compiled object files
+*.o
+
+# Generated MOC, resource and UI files
+moc_*.cpp
+qrc_*.cpp
+ui_*.h
+privatedb/
+
+
+# Debug and Release directories (created under Windows, not Linux)
+Debug/
+Release/
+
+*.Debug
+*.Release
+
+Makefile*
+
+*.pro.user
+
+# .log files (usually created by QtTest - thanks to VestniK)
+*.log
+inp.txt
+out.csv
+
+# Built windows .exe and linux binaries
+# NOTE: PROJECT is a your project's name, analog of PROJECT.exe in Linux
+*.exe
+*.dll
+
+
+# Windows-specific files
+Thumbs.db
+desktop.ini
+# Mac-specific things (thanks to Michael Aaron Safyan)
+.DS_Store
+
+# Editors temporary files 
+*~
+*.db
+vc100.pdb
+TSProject.pro.user.*
+out.csv
+volume.csv
+*.txt
+*.csv
+/ipch
+[Dd]ebug*
+[Rr]elease*
+*.sdf
+*.suo
+*.opensdf
+*.txt
+*.log
+*Amplifier*
+*Inspector*
+*Advisor*
+*.csv
+*.7z
+*.zip
+/astrosoft*
+/installation
+/html
+/latex
+vges-09.04.2015
