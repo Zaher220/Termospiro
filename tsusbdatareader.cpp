@@ -19,44 +19,31 @@ bool TSUsbDataReader::initDevice(){
         RTUSB3000::INPUT_PARS ip; // структура параметров работы АЦП
         double ReadRate = 1.0; // частота  ввода данных
         const static WORD MaxVirtualSoltsQuantity = 4;
-        /*typedef DWORD(*GetDllVersion)();
-        typedef LPVOID(*CreateInstance)(PCHAR const);
-        QLibrary myLib("dll/Rtusbapi.dll");
-        myLib.load();
-        GetDllVersion RtGetDllVersion = (GetDllVersion) myLib.resolve("RtGetDllVersion");
-        if (RtGetDllVersion) {*/
-            if (RtGetDllVersion() == CURRENT_VERSION_RTUSBAPI){
-                qDebug() << "Dll version is correct";
-            }
-            else{
-                qDebug() << "Dll version isn`t correct";
-                qDebug("Dll version isn`t correct");
-                return false;
-            }
-        //}
 
-        //CreateInstance RtCreateInstance = (CreateInstance) myLib.resolve("RtCreateInstance");
-       // if (RtCreateInstance) {
-			//char* const str=new char("usb3000");
-			char ss[]="usb3000";
-            const PCHAR s = &ss[0];
-            //const PCHAR p =reinterpret_cast<const PCHAR>(s);
-			wchar_t  str[] = L"usb3000";
-            //const PCHAR pc[]="usb3000";
-            //pModule = static_cast<IRTUSB3000 *> (RtCreateInstance((PCHAR)str));
-            pModule = static_cast<IRTUSB3000 *> (RtCreateInstance(s));
-            if(pModule == NULL){
-                qDebug() << "Can`t create usb3000 instance";
-                return false;
-            }else{
-                qDebug() << "Create usb3000 instance";
+       /*  if (RtGetDllVersion() == CURRENT_VERSION_RTUSBAPI){
+            qDebug() << "Dll version is correct";
+        }
+        else{
+            qDebug() << "Dll version isn`t correct";
+            qDebug("Dll version isn`t correct");
+            return false;
+        }
 
-            }
-       // }
+        char ss[]="usb3000";
+        const PCHAR s = &ss[0];
+        pModule = static_cast<IRTUSB3000 *> (RtCreateInstance(s));
+        if(pModule == NULL){
+            qDebug() << "Can`t create usb3000 instance";
+            return false;
+        }else{
+            qDebug() << "Create usb3000 instance";
+
+        }*/
+        // }
         WORD i;
         // проверим версию используемой библиотеки Rtusbapi.dll
-		DllVersion = RtGetDllVersion();
-		if (DllVersion != CURRENT_VERSION_RTUSBAPI) {
+        DllVersion = RtGetDllVersion();
+        if (DllVersion != CURRENT_VERSION_RTUSBAPI) {
             qDebug() << "Rtusbapi.dll Version --> bad";
             char String[128];
             sprintf(String, " Rtusbapi.dll Version Error!!!\n   Current: %1u.%1u. Required: %1u.%1u",
@@ -69,10 +56,11 @@ bool TSUsbDataReader::initDevice(){
         }
 
         // получим указатель на интерфейс модуля USB3000
-		char sss[] = "usb3000";
-		char *s1 = sss;
-		//PCHAR* p = reinterpret_cast<PCHAR*>(s1);
-        pModule = static_cast<IRTUSB3000 *> (RtCreateInstance(s1));
+
+        char dev_name_arr[]="usb3000";
+        const PCHAR dev_name = &dev_name_arr[0];
+
+        pModule = static_cast<IRTUSB3000 *> (RtCreateInstance(dev_name));
         if (!pModule){
             qDebug(" Module Interface --> Bad\n");
             return false;
@@ -90,7 +78,6 @@ bool TSUsbDataReader::initDevice(){
         }
         else
             qDebug(" OpenDevice(%u) --> OK\n", i);
-        qDebug(" FUck");
 
 
         // прочитаем название обнаруженного модуля
@@ -237,6 +224,7 @@ bool TSUsbDataReader::read(){
     //timer.clockType=QElapsedTimer::MonotonicClock;
     timer.start();
     qint64 duration=0;
+    QString dt;
     switch (readingType){
     case ReadAll:{
         timer.start();
@@ -244,6 +232,10 @@ bool TSUsbDataReader::read(){
             if ( pModule ){
                 if ( (adc=readData()) != NULL ){
                     buffer->append(adc[0],adc[1],adc[2]);
+                    dt=QDateTime::currentDateTime().toString(dateformat);
+                    vol.push_back(qMakePair(adc[0],dt));
+                    tin.push_back(qMakePair(adc[1],dt));
+                    tout.push_back(qMakePair(adc[2],dt));
                     //printf("%d %d %d \n",adc[0],adc[1],adc[2]);
                 }
                 else{
@@ -331,6 +323,7 @@ SHORT *TSUsbDataReader::readData(){
     }catch(...){
         qDebug()<<"reading wrong";
     }
+    return NULL;
 }
 
 void TSUsbDataReader::stopRead(){
@@ -339,16 +332,26 @@ void TSUsbDataReader::stopRead(){
 
 void TSUsbDataReader::doWork(){
 
+    FILE* out;
+    QString filename = "Data-" + QDateTime::currentDateTime().toString(dateformat)+".csv";
+    out=fopen(filename.toStdString().c_str(),"w");
     if ( this->initDevice() == true ){
-        qDebug()<<"debice is init";
+        qDebug()<<"device is init";
         ReadingStarted=true;
         read();
-        /*if ( read() == true )
-            emit done(true);
-        else
-            emit done(false);*/
-
     }
+
+    for(int i=0;i<vol.size();i++){
+        fprintf(out,"%f;%s;%f;%s;%f;%s\n",
+                vol[i].first, vol[i].second.toStdString().c_str(),
+                tin[i].first, tin[i].second.toStdString().c_str(),
+                tout[i].first, tout[i].second.toStdString().c_str()
+                );
+    }
+    vol.clear();
+    tin.clear();
+    tout.clear();
+    fclose(out);
     releaseReader();
     emit done();
 }
@@ -363,7 +366,7 @@ void TSUsbDataReader::releaseReader(){
 }
 
 void TSUsbDataReader::setBuffer(TSCurveBuffer *bffr){
-    buffer=bffr;
+    buffer = bffr;
 }
 
 bool TSUsbDataReader::isReady(){

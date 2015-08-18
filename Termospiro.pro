@@ -77,3 +77,5 @@ win32: LIBS += -L$$PWD/lib/ -lRtusbapi
 
 INCLUDEPATH += $$PWD/
 DEPENDPATH += $$PWD/
+
+CONFIG += c++11
