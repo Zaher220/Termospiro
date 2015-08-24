@@ -25,38 +25,38 @@ bool TSUsbDataReader::initDevice(){
         myLib.load();
         GetDllVersion RtGetDllVersion = (GetDllVersion) myLib.resolve("RtGetDllVersion");
         if (RtGetDllVersion) {*/
-            if (RtGetDllVersion() == CURRENT_VERSION_RTUSBAPI){
-                qDebug() << "Dll version is correct";
-            }
-            else{
-                qDebug() << "Dll version isn`t correct";
-                qDebug("Dll version isn`t correct");
-                return false;
-            }
+        if (RtGetDllVersion() == CURRENT_VERSION_RTUSBAPI){
+            qDebug() << "Dll version is correct";
+        }
+        else{
+            qDebug() << "Dll version isn`t correct";
+            qDebug("Dll version isn`t correct");
+            return false;
+        }
         //}
 
         //CreateInstance RtCreateInstance = (CreateInstance) myLib.resolve("RtCreateInstance");
-       // if (RtCreateInstance) {
-			//char* const str=new char("usb3000");
-			char ss[]="usb3000";
-            const PCHAR s = &ss[0];
-            //const PCHAR p =reinterpret_cast<const PCHAR>(s);
-			wchar_t  str[] = L"usb3000";
-            //const PCHAR pc[]="usb3000";
-            //pModule = static_cast<IRTUSB3000 *> (RtCreateInstance((PCHAR)str));
-            pModule = static_cast<IRTUSB3000 *> (RtCreateInstance(s));
-            if(pModule == NULL){
-                qDebug() << "Can`t create usb3000 instance";
-                return false;
-            }else{
-                qDebug() << "Create usb3000 instance";
+        // if (RtCreateInstance) {
+        //char* const str=new char("usb3000");
+        char ss[]="usb3000";
+        const PCHAR s = &ss[0];
+        //const PCHAR p =reinterpret_cast<const PCHAR>(s);
+        wchar_t  str[] = L"usb3000";
+        //const PCHAR pc[]="usb3000";
+        //pModule = static_cast<IRTUSB3000 *> (RtCreateInstance((PCHAR)str));
+        pModule = static_cast<IRTUSB3000 *> (RtCreateInstance(s));
+        if(pModule == NULL){
+            qDebug() << "Can`t create usb3000 instance";
+            return false;
+        }else{
+            qDebug() << "Create usb3000 instance";
 
-            }
-       // }
+        }
+        // }
         WORD i;
         // проверим версию используемой библиотеки Rtusbapi.dll
-		DllVersion = RtGetDllVersion();
-		if (DllVersion != CURRENT_VERSION_RTUSBAPI) {
+        DllVersion = RtGetDllVersion();
+        if (DllVersion != CURRENT_VERSION_RTUSBAPI) {
             qDebug() << "Rtusbapi.dll Version --> bad";
             char String[128];
             sprintf(String, " Rtusbapi.dll Version Error!!!\n   Current: %1u.%1u. Required: %1u.%1u",
@@ -69,9 +69,9 @@ bool TSUsbDataReader::initDevice(){
         }
 
         // получим указатель на интерфейс модуля USB3000
-		char sss[] = "usb3000";
-		char *s1 = sss;
-		//PCHAR* p = reinterpret_cast<PCHAR*>(s1);
+        char sss[] = "usb3000";
+        char *s1 = sss;
+        //PCHAR* p = reinterpret_cast<PCHAR*>(s1);
         pModule = static_cast<IRTUSB3000 *> (RtCreateInstance(s1));
         if (!pModule){
             qDebug(" Module Interface --> Bad\n");
@@ -234,22 +234,59 @@ bool TSUsbDataReader::read(){
     qDebug()<<"read";
     SHORT* adc;
     QElapsedTimer timer;
+    QElapsedTimer sec_timer;
     //timer.clockType=QElapsedTimer::MonotonicClock;
     timer.start();
     qint64 duration=0;
+    int count=0;
+    QString dt;
     switch (readingType){
     case ReadAll:{
         timer.start();
+        sec_timer.start();
         while( ReadingStarted )
             if ( pModule ){
                 if ( (adc=readData()) != NULL ){
-                    buffer->append(adc[0],adc[1],adc[2]);
+                    //buffer->append(adc[0],adc[1],adc[2]);
+                    dt=QDateTime::currentDateTime().toString(dateformat);
+                    vol.push_back(qMakePair(adc[0],dt));
+                    tin.push_back(qMakePair(adc[1],dt));
+                    tout.push_back(qMakePair(adc[2],dt));
+                    m_vol.push_back(adc[0]);
+                    m_tin.push_back(adc[1]);
+                    m_tout.push_back(adc[2]);
+                    count++;
                     //printf("%d %d %d \n",adc[0],adc[1],adc[2]);
                 }
                 else{
                     ReadingStarted = false;
                     //qDebug()<<"ReadAll break";
                     return false;
+                }
+
+                if ( sec_timer.nsecsElapsed()>= 1000000 ){
+                    sec_timer.restart();
+                    if(count<100){
+                        int diff = 100-count;
+                        for(int i=0;i<diff;i++){
+                            m_vol.push_back(m_vol.last());
+                            m_tin.push_back(m_tin.last());
+                            m_tout.push_back(m_tout.last());
+                        }
+                    }
+                    if(count >100){
+                        int diff = count-100;
+                        m_vol.erase(m_vol.begin()+(m_vol.size()-diff),m_vol.end());
+                        m_tin.erase(m_vol.begin()+(m_tin.size()-diff),m_tin.end());
+                        m_tout.erase(m_vol.begin()+(m_tout.size()-diff),m_tout.end());
+                    }
+                    for(int i=0;i<m_vol.size();i++){
+                        buffer->append(m_vol[i],m_tin[i],m_tout[i]);
+                    }
+                    m_vol.clear();
+                    m_tin.clear();
+                    m_tout.clear();
+                    sec_timer.restart();
                 }
 
                 duration=timer.nsecsElapsed();
@@ -338,7 +375,9 @@ void TSUsbDataReader::stopRead(){
 }
 
 void TSUsbDataReader::doWork(){
-
+    FILE *out = NULL;
+   // std::string filename = "Data-" + QDateTime::currentDateTime().toString(dateformat)+".csv";
+    out = fopen("Data.csv","w");
     if ( this->initDevice() == true ){
         qDebug()<<"debice is init";
         ReadingStarted=true;
@@ -347,9 +386,22 @@ void TSUsbDataReader::doWork(){
             emit done(true);
         else
             emit done(false);*/
-
     }
     releaseReader();
+    if (out != NULL){
+        for(int i=0;i<vol.size();i++){
+            fprintf(out,"%f;%s;%f;%s;%f;%s\n",
+                    vol[i].first, vol[i].second.toStdString().c_str(),
+                    tin[i].first, tin[i].second.toStdString().c_str(),
+                    tout[i].first, tout[i].second.toStdString().c_str()
+                    );
+        }
+        vol.clear();
+        tin.clear();
+        tout.clear();
+        if ( out!= NULL )
+            fclose(out);
+    }
     emit done();
 }
 
