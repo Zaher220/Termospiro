@@ -327,9 +327,12 @@ void TSController::calibrateVolume(){
 
     TSUsbDataReader *reader = new TSUsbDataReader();
     QThread *thread = new QThread();
+    thread->setPriority(QThread::TimeCriticalPriority);
     connect(thread,SIGNAL(started()),reader,SLOT(doWork()));
     connect(reader,SIGNAL(done()),&d,SLOT(accept()));
     connect(reader,SIGNAL(changeProgress(int)),dui.progressBar,SLOT(setValue(int)));
+    connect(reader, SIGNAL(sendNewData(QVector<double>,QVector<double>,QVector<double>)),
+            curveBuffer, SLOT(appendData(QVector<double>,QVector<double>,QVector<double>)));
     reader->setBuffer(curveBuffer);
     reader->setReadingType(ReadForVolZer);
     reader->moveToThread(thread);
@@ -363,9 +366,12 @@ void TSController::calibrateVolume(){
 
     _reader = new TSUsbDataReader();
     _thread = new QThread();
+    _thread->setPriority(QThread::TimeCriticalPriority);
     connect(_thread,SIGNAL(started()),_reader,SLOT(doWork()));
     connect(_reader,SIGNAL(done()),&d,SLOT(accept()));
     connect(_reader,SIGNAL(changeProgress(int)),dui.progressBar,SLOT(setValue(int)));
+    connect(_reader, SIGNAL(sendNewData(QVector<double>,QVector<double>,QVector<double>)),
+            curveBuffer, SLOT(appendData(QVector<double>,QVector<double>,QVector<double>)));
     _reader->setBuffer(curveBuffer);
     _reader->setReadingType(ReadForVolVal);
     _reader->moveToThread(_thread);
@@ -605,11 +611,15 @@ void TSController::startExam()
     curveBuffer->clean();
     _reader = new TSUsbDataReader();
     _thread = new QThread();
+    _thread->setPriority(QThread::Priority::TimeCriticalPriority);
     connect(_thread,SIGNAL(started()),_reader,SLOT(doWork()));
     connect(_thread,SIGNAL(finished()),this,SLOT(stopExam()));
+    connect(_reader, SIGNAL(sendNewData(QVector<double>,QVector<double>,QVector<double>)),
+            curveBuffer, SLOT(appendData(QVector<double>,QVector<double>,QVector<double>)));
     _reader->setBuffer(curveBuffer);
     _reader->setReadingType(ReadAll);
     _reader->moveToThread(_thread);
+
     _thread->start();
     myTimer.start();
     recordingStarted = true;

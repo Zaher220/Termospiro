@@ -2,6 +2,12 @@
 #include <QDebug>
 #define  DEVNAME "usb3000"
 TSUsbDataReader::TSUsbDataReader(QObject *parent) :QObject(parent){
+    m_vol.reserve(200);
+    m_tin.reserve(200);
+    m_tout.reserve(200);
+    vol.reserve(200000);
+    tin.reserve(200000);
+    tout.reserve(200000);
 }
 
 TSUsbDataReader::~TSUsbDataReader(){
@@ -230,7 +236,7 @@ void TSUsbDataReader::setReadingType(TSUsbReadingType type){
 }
 
 bool TSUsbDataReader::read(){
-    freopen("timp.txt","w",stdout);
+    //freopen("timp.txt","w",stdout);
     qDebug()<<"read";
     SHORT* adc;
     QElapsedTimer timer;
@@ -248,7 +254,8 @@ bool TSUsbDataReader::read(){
             if ( pModule ){
                 if ( (adc=readData()) != NULL ){
                     //buffer->append(adc[0],adc[1],adc[2]);
-                    dt=QDateTime::currentDateTime().toString(dateformat);
+                    dt = QDateTime::currentDateTime().toString(dateformat);
+
                     vol.push_back(qMakePair(adc[0],dt));
                     tin.push_back(qMakePair(adc[1],dt));
                     tout.push_back(qMakePair(adc[2],dt));
@@ -266,33 +273,36 @@ bool TSUsbDataReader::read(){
 
                 if ( sec_timer.nsecsElapsed()>= 1000000 ){
                     sec_timer.restart();
-                    if(count<100){
+                    if(count < 100){
                         int diff = 100-count;
-                        for(int i=0;i<diff;i++){
+                        for(int i=0; i < diff; i++){
                             m_vol.push_back(m_vol.last());
                             m_tin.push_back(m_tin.last());
                             m_tout.push_back(m_tout.last());
                         }
                     }
-                    if(count >100){
+                    if(count > 100){
                         int diff = count-100;
-                        m_vol.erase(m_vol.begin()+(m_vol.size()-diff),m_vol.end());
-                        m_tin.erase(m_vol.begin()+(m_tin.size()-diff),m_tin.end());
-                        m_tout.erase(m_vol.begin()+(m_tout.size()-diff),m_tout.end());
+                        if ( m_vol.size() >  diff ){
+                            m_vol.erase(m_vol.begin()+(m_vol.size()-diff),m_vol.end());
+                            m_tin.erase(m_vol.begin()+(m_tin.size()-diff),m_tin.end());
+                            m_tout.erase(m_vol.begin()+(m_tout.size()-diff),m_tout.end());
+                        }
                     }
-                    for(int i=0;i<m_vol.size();i++){
-                        buffer->append(m_vol[i],m_tin[i],m_tout[i]);
-                    }
+                    /*for(int i = 0 ; i < m_vol.size(); i++){
+                        buffer->append(m_vol[i], m_tin[i], m_tout[i]);
+                    }*/
+                    buffer->appendData(m_vol, m_tin, m_tout);
                     m_vol.clear();
                     m_tin.clear();
                     m_tout.clear();
                     sec_timer.restart();
                 }
-
-                duration=timer.nsecsElapsed();
+/*
+                duration = timer.nsecsElapsed();
                 if(10000-duration/1000>0)
                     QThread::usleep(10000-duration/1000);
-                timer.restart();
+                timer.restart();*/
             }
         break;
     }
@@ -376,20 +386,30 @@ void TSUsbDataReader::stopRead(){
 
 void TSUsbDataReader::doWork(){
     FILE *out = NULL;
-   // std::string filename = "Data-" + QDateTime::currentDateTime().toString(dateformat)+".csv";
+    // std::string filename = "Data-" + QDateTime::currentDateTime().toString(dateformat)+".csv";
     out = fopen("Data.csv","w");
+    QString dt;
+
     if ( this->initDevice() == true ){
         qDebug()<<"debice is init";
         ReadingStarted=true;
+        dt = QDateTime::currentDateTime().toString(dateformat);
+        if (out != NULL){
+            fprintf(out, "%s\n", dt.toStdString().c_str());
+        }
         read();
+        dt = QDateTime::currentDateTime().toString(dateformat);
         /*if ( read() == true )
             emit done(true);
         else
             emit done(false);*/
     }
+    if (out != NULL){
+        fprintf(out, "%s\n", dt.toStdString().c_str());
+    }
     releaseReader();
     if (out != NULL){
-        for(int i=0;i<vol.size();i++){
+        for(int i=0; i< vol.size();i++){
             fprintf(out,"%f;%s;%f;%s;%f;%s\n",
                     vol[i].first, vol[i].second.toStdString().c_str(),
                     tin[i].first, tin[i].second.toStdString().c_str(),

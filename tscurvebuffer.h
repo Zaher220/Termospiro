@@ -64,6 +64,7 @@ signals:
     void updateAverageData(int avgTempIn, int avgTempOut, int avgDo, int ChD);
 public slots:
     void updateAvData(int avgTempIn, int avgTempOut, int avgDo, int ChD);
+    void appendData(QVector<double> volume, QVector<double> tempin, QVector<double> tempout);
 private:
     int ts_volume[18000];
     int ts_tempIn[18000];

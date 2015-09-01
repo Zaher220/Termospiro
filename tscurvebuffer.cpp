@@ -239,3 +239,10 @@ void TSCurveBuffer::setLenght(int l){
 void TSCurveBuffer::updateAvData(int avgTempIn, int avgTempOut, int avgDo, int ChD){
     emit updateAverageData(avgTempIn,avgTempOut,avgDo,ChD);
 }
+
+void TSCurveBuffer::appendData(QVector<double> volume, QVector<double> tempin, QVector<double> tempout)
+{
+    for(int i=0; i < volume.size(); i++){
+        this->append(volume[i], tempin[i], tempout[i]);
+    }
+}

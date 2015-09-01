@@ -25,6 +25,7 @@ signals:
     //void done(bool isCorrect);
     void done();
     void changeProgress(int val);
+    void sendNewData(QVector<double> volume, QVector<double> tempin, QVector<double> tempout);
 public slots:
     void doWork();
 private:
@@ -38,7 +39,7 @@ private:
     SHORT AdcBuffer[CHANNELS_QUANTITY]; // буфер данных для кадра отсчётов
     TSUsbReadingType readingType;
     bool ReadingStarted = false;
-    QVector<QPair<double,QString>> vol, tin, tout;
+    QVector< QPair< double,QString > > vol, tin, tout;
     QVector<double> m_vol, m_tin, m_tout;
    // const QString dateformat="dd/MM/yyyy HH:mm:ss:zzz";
      const QString dateformat="mm;ss;zzz";
