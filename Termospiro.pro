@@ -32,7 +32,8 @@ SOURCES += main.cpp\
     inputs/tstableview.cpp \
     models/TSExaminations.cpp \
     models/TSPatients.cpp \
-    tools/tsvalidationtools.cpp
+    tools/tsvalidationtools.cpp \
+    adcdatareader.cpp
 
 HEADERS  += \
     bdgod.h \
@@ -54,7 +55,8 @@ HEADERS  += \
     inputs/tstableview.h \
     models/TSExaminations.h \
     models/TSPatients.h \
-    tools/tsvalidationtools.h
+    tools/tsvalidationtools.h \
+    adcdatareader.h
 
 FORMS    += \
     colibrateDialog.ui \

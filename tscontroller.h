@@ -15,6 +15,7 @@
 #include "tsusbdatareader.h"
 #include "volumesolver.h"
 #include <QTime>
+#include "adcdatareader.h"
 namespace Ui {
     class TSView;
     class TSProgressDialog;
@@ -131,6 +132,7 @@ private:
     QSqlDatabase examinationsConnection;
     bool isInitialized;
     QTime myTimer;
+    ADCDataReader *m_data_reader;
 };
 
 #endif // TSVIEW_H

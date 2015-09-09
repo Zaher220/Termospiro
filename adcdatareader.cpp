@@ -1,19 +1,22 @@
-#include "tsusbdatareader.h"
-#include <QDebug>
-#define  DEVNAME "usb3000"
-TSUsbDataReader::TSUsbDataReader(QObject *parent) :QObject(parent){
-    m_vol.reserve(200);
-    m_tin.reserve(200);
-    m_tout.reserve(200);
-    vol.reserve(200000);
-    tin.reserve(200000);
-    tout.reserve(200000);
+#include "adcdatareader.h"
+
+ADCDataReader::ADCDataReader(QObject *parent) : QObject(parent)
+{
+
 }
 
-TSUsbDataReader::~TSUsbDataReader(){
+ADCDataReader::~ADCDataReader()
+{
+
 }
 
-bool TSUsbDataReader::initDevice(){
+bool ADCDataReader::isReady()
+{
+    return false;
+}
+
+bool ADCDataReader::initDevice()
+{
     try{
         //buffer=_bf;
         char ModuleName[10]; // название модуля
@@ -25,12 +28,7 @@ bool TSUsbDataReader::initDevice(){
         RTUSB3000::INPUT_PARS ip; // структура параметров работы АЦП
         double ReadRate = 1.0; // частота  ввода данных
         const static WORD MaxVirtualSoltsQuantity = 4;
-        /*typedef DWORD(*GetDllVersion)();
-        typedef LPVOID(*CreateInstance)(PCHAR const);
-        QLibrary myLib("dll/Rtusbapi.dll");
-        myLib.load();
-        GetDllVersion RtGetDllVersion = (GetDllVersion) myLib.resolve("RtGetDllVersion");
-        if (RtGetDllVersion) {*/
+
         if (RtGetDllVersion() == CURRENT_VERSION_RTUSBAPI){
             qDebug() << "Dll version is correct";
         }
@@ -39,17 +37,10 @@ bool TSUsbDataReader::initDevice(){
             qDebug("Dll version isn`t correct");
             return false;
         }
-        //}
 
-        //CreateInstance RtCreateInstance = (CreateInstance) myLib.resolve("RtCreateInstance");
-        // if (RtCreateInstance) {
-        //char* const str=new char("usb3000");
         char ss[]="usb3000";
         const PCHAR s = &ss[0];
-        //const PCHAR p =reinterpret_cast<const PCHAR>(s);
-        wchar_t  str[] = L"usb3000";
-        //const PCHAR pc[]="usb3000";
-        //pModule = static_cast<IRTUSB3000 *> (RtCreateInstance((PCHAR)str));
+
         pModule = static_cast<IRTUSB3000 *> (RtCreateInstance(s));
         if(pModule == NULL){
             qDebug() << "Can`t create usb3000 instance";
@@ -231,226 +222,124 @@ bool TSUsbDataReader::initDevice(){
 
 }
 
-void TSUsbDataReader::setReadingType(TSUsbReadingType type){
-    readingType = type;
+TSUsbReadingType ADCDataReader::readingType() const
+{
+    return m_readingType;
 }
 
-bool TSUsbDataReader::read(){
-    //freopen("timp.txt","w",stdout);
-    qDebug()<<"read";
-    SHORT* adc;
-    QElapsedTimer timer;
-    QElapsedTimer sec_timer;
-    //timer.clockType=QElapsedTimer::MonotonicClock;
-    timer.start();
-    qint64 duration=0;
-    int count=0;
-    QString dt;
-    switch (readingType){
-    case ReadAll:{
-        timer.start();
-        sec_timer.start();
-        while( ReadingStarted )
-            if ( pModule ){
-                if ( (adc=readData()) != NULL ){
-                    //buffer->append(adc[0],adc[1],adc[2]);
-                    dt = QDateTime::currentDateTime().toString(dateformat);
-
-                    vol.push_back(qMakePair(adc[0],dt));
-                    tin.push_back(qMakePair(adc[1],dt));
-                    tout.push_back(qMakePair(adc[2],dt));
-                    m_vol.push_back(adc[0]);
-                    m_tin.push_back(adc[1]);
-                    m_tout.push_back(adc[2]);
-                    count++;
-                    //printf("%d %d %d \n",adc[0],adc[1],adc[2]);
-                }
-                else{
-                    ReadingStarted = false;
-                    //qDebug()<<"ReadAll break";
-                    return false;
-                }
-
-                if ( sec_timer.nsecsElapsed()>= 1000000 ){
-                    sec_timer.restart();
-                    if(count < 100){
-                        int diff = 100-count;
-                        for(int i=0; i < diff; i++){
-                            m_vol.push_back(m_vol.last());
-                            m_tin.push_back(m_tin.last());
-                            m_tout.push_back(m_tout.last());
-                        }
-                    }
-                    if(count > 100){
-                        int diff = count-100;
-                        if ( m_vol.size() >  diff ){
-                            m_vol.erase(m_vol.begin()+(m_vol.size()-diff),m_vol.end());
-                            m_tin.erase(m_vol.begin()+(m_tin.size()-diff),m_tin.end());
-                            m_tout.erase(m_vol.begin()+(m_tout.size()-diff),m_tout.end());
-                        }
-                    }
-                    /*for(int i = 0 ; i < m_vol.size(); i++){
-                        buffer->append(m_vol[i], m_tin[i], m_tout[i]);
-                    }*/
-                    buffer->appendData(m_vol, m_tin, m_tout);
-                    m_vol.clear();
-                    m_tin.clear();
-                    m_tout.clear();
-                    sec_timer.restart();
-                }
-/*
-                duration = timer.nsecsElapsed();
-                if(10000-duration/1000>0)
-                    QThread::usleep(10000-duration/1000);
-                timer.restart();*/
-            }
-        break;
-    }
-    case ReadForVolZer:{
-        int avg=0;
-        timer.start();
-        for(int i=0;i<300;i++){
-            if ( pModule ){
-                if ( (adc=readData()) != NULL ){
-                    avg+=adc[0];
-                    if( i%10 )
-                        emit changeProgress(i/3);
-                }else{
-                    ReadingStarted=false;
-                    //qDebug()<<"ReadForVolZer break";
-                    return false;
-                }
-
-                duration=timer.nsecsElapsed();
-                if(10000-duration/1000>0)
-                    QThread::usleep(10000-duration/1000);
-                timer.restart();
-                //qDebug()<<"ReadForVolZer  pModule correct";
-            }
-        }
-        avg/=300;
-        buffer->setVolumeColibration(avg,true);
-        break;
-    }
-    case ReadForVolVal:{
-        timer.start();;
-        buffer->setEnd(0);
-        for(int i=0;i<1200;i++){
-            if ( ReadingStarted == false ){
-                i=1300;
-                break;
-            }
-            if ( pModule ){
-                if ( (adc=readData()) != NULL ){
-                    buffer->append(adc[0],0,0);
-                    if( i%24 )
-                        emit changeProgress(i/12);
-                }else{
-                    //ReadingStarted=false;
-                    //qDebug()<<"ReadForVolVal break";
-                    return false;
-                }
-                //qDebug()<<"ReadForVolVal  pModule correct";
-                duration=timer.nsecsElapsed();
-                if(10000-duration/1000>0)
-                    QThread::usleep(10000-duration/1000);
-                timer.restart();
-            }
-        }
-        ReadingStarted=false;
-        break;
-    }
-    }
-    return true;
+void ADCDataReader::setReadingType(const TSUsbReadingType &readingType)
+{
+    m_readingType = readingType;
 }
 
-SHORT *TSUsbDataReader::readData(){
-    try{
-        if ( pModule ){
-            if (pModule->READ_KADR(AdcBuffer))
-                return AdcBuffer;
-            else{
-                qDebug("Can`t read from device");
-                return NULL;
-            }
-        }
-        return NULL;
-    }catch(...){
-        qDebug()<<"reading wrong";
+void ADCDataReader::startADC()
+{
+    if ( initDevice() ){
+;
     }
 }
 
-void TSUsbDataReader::stopRead(){
-    ReadingStarted = false;
-}
-
-void TSUsbDataReader::doWork(){
-    FILE *out = NULL;
-    // std::string filename = "Data-" + QDateTime::currentDateTime().toString(dateformat)+".csv";
-    out = fopen("Data.csv","w");
-    QString dt;
-
-    if ( this->initDevice() == true ){
-        qDebug()<<"debice is init";
-        ReadingStarted=true;
-        dt = QDateTime::currentDateTime().toString(dateformat);
-        if (out != NULL){
-            fprintf(out, "%s\n", dt.toStdString().c_str());
-        }
-        read();
-        dt = QDateTime::currentDateTime().toString(dateformat);
-        /*if ( read() == true )
-            emit done(true);
-        else
-            emit done(false);*/
-    }
-    if (out != NULL){
-        fprintf(out, "%s\n", dt.toStdString().c_str());
-    }
-    releaseReader();
-    if (out != NULL){
-        for(int i=0; i< vol.size();i++){
-            fprintf(out,"%f;%s;%f;%s;%f;%s\n",
-                    vol[i].first, vol[i].second.toStdString().c_str(),
-                    tin[i].first, tin[i].second.toStdString().c_str(),
-                    tout[i].first, tout[i].second.toStdString().c_str()
-                    );
-        }
-        vol.clear();
-        tin.clear();
-        tout.clear();
-        if ( out!= NULL )
-            fclose(out);
-    }
-    emit done();
-}
-
-void TSUsbDataReader::acquireData()
+void ADCDataReader::stopADC()
 {
 
 }
 
-void TSUsbDataReader::releaseReader(){
-    qDebug()<<"releaseReader()";
-    if ( pModule != NULL ){
-        pModule->STOP_READ();
-        pModule->ReleaseInstance();
-        pModule = NULL;
+void ADCDataReader::acquireData()
+{
+    WORD i;
+    // номер запроса на сбор данных
+    WORD RequestNumber;
+    // идентификатор массива их двух событий
+    HANDLE ReadEvent[2];
+    // массив OVERLAPPED структур из двух элементов
+    OVERLAPPED ReadOv[2];
+    DWORD BytesTransferred[2];
+    //	DWORD TimeOut;
+
+    // остановим ввод данных и одновременно прочистим соответствующий канал bulk USB
+    if(!pModule->STOP_READ()){
+        ThreadErrorNumber = 0x6;
+        IsThreadComplete = true;
+        return 0;
     }
+
+    // создадим два события
+    ReadEvent[0] = CreateEvent(NULL, FALSE , FALSE, NULL);
+    memset(&ReadOv[0], 0, sizeof(OVERLAPPED)); ReadOv[0].hEvent = ReadEvent[0];
+    ReadEvent[1] = CreateEvent(NULL, FALSE , FALSE, NULL);
+    memset(&ReadOv[1], 0, sizeof(OVERLAPPED)); ReadOv[1].hEvent = ReadEvent[1];
+
+    // таймаут ввода данных
+    //	TimeOut = (DWORD)(DataStep/ReadRate + 1000);
+
+    // делаем предварительный запрос на ввод данных
+    RequestNumber = 0x0;
+    if(!pModule->ReadData(ReadBuffer, &DataStep, &BytesTransferred[RequestNumber], &ReadOv[RequestNumber]))
+        if(GetLastError() != ERROR_IO_PENDING){
+            CloseHandle(ReadEvent[0]);
+            CloseHandle(ReadEvent[1]);
+            ThreadErrorNumber = 0x2;
+            IsThreadComplete = true;
+            return 0;
+        }
+
+    // теперь запускаем ввод данных
+    if(pModule->START_READ()){
+        // цикл сбора данных
+        for(i = 0x1; i < NBlockRead; i++){
+
+            RequestNumber ^= 0x1;
+            // сделаем запрос на очередную порции данных
+            if(!pModule->ReadData(ReadBuffer + i*DataStep, &DataStep, &BytesTransferred[RequestNumber], &ReadOv[RequestNumber]))
+                if(GetLastError() != ERROR_IO_PENDING){
+                    ThreadErrorNumber = 0x2;
+                    break;
+                }
+
+            // ждём окончания операции сбора очередной порции данных
+            if(!WaitingForRequestCompleted(&ReadOv[RequestNumber^0x1]))
+                break;
+            //			if(WaitForSingleObject(ReadEvent[!RequestNumber], TimeOut) == WAIT_TIMEOUT)
+            //				            		{ ThreadErrorNumber = 0x3; break; }
+
+            if(ThreadErrorNumber)
+                break;
+            else if(kbhit()) {
+                ThreadErrorNumber = 0x1;
+                break;
+            }
+            else
+                Sleep(20);
+            Counter++;
+        }
+
+        // ждём окончания операции сбора последней порции данных
+        if(!ThreadErrorNumber)
+        {
+            RequestNumber ^= 0x1;
+            WaitingForRequestCompleted(&ReadOv[RequestNumber^0x1]);
+            //			if(WaitForSingleObject(ReadEvent[!RequestNumber], TimeOut) == WAIT_TIMEOUT) ThreadErrorNumber = 0x3;
+            Counter++;
+        }
+    }
+    else { ThreadErrorNumber = 0x5; }
+
+    // остановим ввод данных
+    if(!pModule->STOP_READ())
+        ThreadErrorNumber = 0x6;
+    // если надо, то прервём незавершённый асинхронный запрос
+    if(!CancelIo(pModule->GetModuleHandle()))
+        ThreadErrorNumber = 0x7;
+    // освободим все идентификаторы событий
+    for(i = 0x0; i < 0x2; i++)
+        CloseHandle(ReadEvent[i]);
+    // небольшая задержка
+    Sleep(100);
+    // установим флажок окончания потока сбора данных
+    IsThreadComplete = true;
+    // теперь можно воходить из потока сбора данных
+    return 0;
 }
 
-void TSUsbDataReader::setBuffer(TSCurveBuffer *bffr){
-    buffer=bffr;
-}
-
-bool TSUsbDataReader::isReady(){
-    if ( initDevice() == true ){
-        qDebug()<<"init ne true";
-        releaseReader();
-        return true;
-    }
-    releaseReader();
-    return false;
-}
 
 
