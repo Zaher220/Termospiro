@@ -17,7 +17,6 @@ TEMPLATE = app
 
 SOURCES += main.cpp\
     bdgod.cpp \
-    CRUDmw.cpp \
     tsanalitics.cpp \
     tscontroller.cpp \
     tscurvebuffer.cpp \
@@ -25,7 +24,6 @@ SOURCES += main.cpp\
     tsrealcalc.cpp \
     tsrealcalcwrapper.cpp \
     tstempanalitic.cpp \
-    tsusbdatareader.cpp \
     volumesolver.cpp \
     inputs/tscombobox.cpp \
     inputs/tslineedit.cpp \
@@ -38,7 +36,6 @@ SOURCES += main.cpp\
 
 HEADERS  += \
     bdgod.h \
-    CRUDmw.h \
     extremum.h \
     Rtusbapi.h \
     ts_types.h \
@@ -49,7 +46,6 @@ HEADERS  += \
     tsrealcalc.h \
     tsrealcalcwrapper.h \
     tstempanalitic.h \
-    tsusbdatareader.h \
     volumesolver.h \
     inputs/tscombobox.h \
     inputs/tslineedit.h \
@@ -62,8 +58,6 @@ HEADERS  += \
 
 FORMS    += \
     colibrateDialog.ui \
-    CRUDmw.ui \
-    dialog.ui \
     patientprofile.ui \
     tsprintview.ui \
     tsprogressdialog.ui \
@@ -81,4 +75,3 @@ win32: LIBS += -L$$PWD/lib/ -lRtusbapi
 
 INCLUDEPATH += $$PWD/
 DEPENDPATH += $$PWD/
-

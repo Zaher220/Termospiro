@@ -93,7 +93,10 @@ TSController::TSController(QWidget *parent):QMainWindow(parent),ui(new Ui::TSVie
     connect(ui->horizontalScrollBar,SIGNAL(valueChanged(int)),this,SLOT(scrollGraphics(int)));
     connect(ui->newExamButton,SIGNAL(clicked()),this,SLOT(createNewExam()));
     connect(ui->stopExam,SIGNAL(clicked()),this,SLOT(stopExam()));
-    connect(ui->examsTableView,SIGNAL(doubleClicked(QModelIndex)),this,SLOT(openExam(QModelIndex)));
+
+    connect(ui->examsTableView,SIGNAL(doubleClicked(QModelIndex)),this, SLOT(openExam(QModelIndex)));
+    connect(ui->examsTableView,SIGNAL(deleteRequest(int)),this,SLOT(deleteExam(int)));
+
     connect(ui->tempInScaleSlider,SIGNAL(valueChanged(int)),this,SLOT(scaleTempIn(int)));
     connect(ui->tempOutScaleSlider,SIGNAL(valueChanged(int)),this,SLOT(scaleTempOut(int)));
     connect(ui->volumeScaleSlider,SIGNAL(valueChanged(int)),this,SLOT(scaleVolume(int)));
@@ -103,21 +106,18 @@ TSController::TSController(QWidget *parent):QMainWindow(parent),ui(new Ui::TSVie
     connect(ui->breakExamButton,SIGNAL(clicked()),this,SLOT(breakExam()));
     connect(ui->resultsButton,SIGNAL(clicked()),this,SLOT(processDataParams()));
     connect(ui->patientsTableView,SIGNAL(deleteRequest(int)),this,SLOT(deletePatient(int)));
-    connect(ui->examsTableView,SIGNAL(deleteRequest(int)),this,SLOT(deleteExam(int)));
+
     connect(ui->printButton,SIGNAL(clicked()),this,SLOT(printReport()));
     ui->resultsButton->setEnabled(true);
     ui->backPatientProfileButton->installEventFilter(this);
     ui->backPatientListButton->installEventFilter(this);
     ui->backCallibrateButton->installEventFilter(this);
     ui->backExamButton->installEventFilter(this);
-    /*_reader=NULL;
-    _thread=NULL;*/
 
     connect(&m_adc_reader, SIGNAL(sendACQData(std::vector<std::vector<short> >)), &m_raw_data_parser, SLOT(setACQData(std::vector<std::vector<short> >)));
     connect(&m_raw_data_parser, SIGNAL(sendNewData(QVector<double>,QVector<double>,QVector<double>)), curveBuffer, SLOT(appendData(QVector<double>,QVector<double>,QVector<double>)));
 
-
-
+    ui->examsTableView->setEditTriggers(QTableView::NoEditTriggers);;
     //connect(reader,SIGNAL(done()),&d,SLOT(accept()));
     // connect(reader,SIGNAL(changeProgress(int)),dui.progressBar,SLOT(setValue(int)));
     //this->processDataParams();
@@ -327,23 +327,6 @@ void TSController::calibrateVolume(){
     m_adc_reader.setSamples_number(1250);
     m_adc_reader.startACQ();
 
-    /*TSUsbDataReader *reader = new TSUsbDataReader();
-    QThread *thread = new QThread();
-    thread->setPriority(QThread::TimeCriticalPriority);
-    connect(thread,SIGNAL(started()),reader,SLOT(doWork()));
-    connect(reader,SIGNAL(done()),&d,SLOT(accept()));
-    connect(reader,SIGNAL(changeProgress(int)),dui.progressBar,SLOT(setValue(int)));
-    connect(reader, SIGNAL(sendNewData(QVector<double>,QVector<double>,QVector<double>)),
-            curveBuffer, SLOT(appendData(QVector<double>,QVector<double>,QVector<double>)));
-    reader->setBuffer(curveBuffer);
-    reader->setReadingType(ReadForVolZer);
-    reader->moveToThread(thread);
-    thread->start();*/
-
-    /*connect(readerThread,SIGNAL(done()),&d,SLOT(accept()));
-    connect(readerThread,SIGNAL(changeProgress(int)),dui.progressBar,SLOT(setValue(int)));
-    readerThread->setReadingType(ReadForVolZer);
-    readerThread->startRead();*/
     if(d.exec()==1){
         settings.setValue("volZero",curveBuffer->volumeColibration());
         dui.information->setText(tr("Подготовка завершена.\nНажмите ОК и качайте шприцем."));
@@ -352,34 +335,11 @@ void TSController::calibrateVolume(){
     }
     m_adc_reader.stopACQ();
 
-    /*reader->stopRead();
-    Sleep(200);
-    thread->quit();
-    Sleep(200);
-    thread->disconnect(reader);
-    disconnect(&d,SLOT(accept()));
-    delete thread;
-    thread = NULL;
-    delete reader;
-    reader=NULL;*/
 
     d.exec();
     connect(&cPlotingTimer,SIGNAL(timeout()),this,SLOT(plotCalibration()));
 
     m_adc_reader.startACQ();
-    //connect(&m_adc_reader, SIGNAL())
-   /* _reader = new TSUsbDataReader();
-    _thread = new QThread();
-    _thread->setPriority(QThread::TimeCriticalPriority);
-    connect(_thread,SIGNAL(started()),_reader,SLOT(doWork()));
-    connect(_reader,SIGNAL(done()),&d,SLOT(accept()));
-    connect(_reader,SIGNAL(changeProgress(int)),dui.progressBar,SLOT(setValue(int)));
-    connect(_reader, SIGNAL(sendNewData(QVector<double>,QVector<double>,QVector<double>)),
-            curveBuffer, SLOT(appendData(QVector<double>,QVector<double>,QVector<double>)));
-    _reader->setBuffer(curveBuffer);
-    _reader->setReadingType(ReadForVolVal);
-    _reader->moveToThread(_thread);
-    _thread->start();*/
     cPlotingTimer.start(100);
 }
 
@@ -427,7 +387,7 @@ void TSController::plotNow()
     int endIndex = curveBuffer->end();
     if(endIndex == 17999)plotingTimer.stop();
     int h = ui->gVolume->height()/2;
-    int h1 = ui->gVolume->height()-5;
+    //int h1 = ui->gVolume->height()-5;
     int step = h/10;
     startIndex = endIndex - (W-35);
     if(startIndex < 0) startIndex = 0;
@@ -460,9 +420,7 @@ void TSController::plotNow()
     pVolume.setPen(QColor(0,0,0));
     pTempIn.setPen(QColor(0,0,0));
     pTempOut.setPen(curveBuffer->toutColor);
-    //pVolume.drawLine(0,h,W,h);
-    //pTempIn.drawLine(0,h+tempInZerPos*h,W,h+tempInZerPos*h);
-    //pTempOut.drawLine(0,h,W,h);
+
     pVolume.setPen(QColor(255,0,0));
     int* tinInt = curveBuffer->getTempInInterval();
     int* toutInt = curveBuffer->getTempOutInterval();
@@ -505,9 +463,8 @@ void TSController::plotNow()
 
 void TSController::plotCalibration(){
     // qDebug()<<"TSController::plotCalibration";
-    //    int endIndex = curveBuffer->end();
     int endIndex = curveBuffer->getLenght();
-    if(endIndex<1200){
+    if(endIndex < 1200){
         pcVolume.fillRect(0,0,cW,cH,Qt::white);
         int h = cH/2;
         int step = h/10;
@@ -561,19 +518,8 @@ void TSController::plotCalibration(){
         curveBuffer->setVolumeConverts(ta.getMax(),ta.getMin());
 
         qDebug()<<"reading is finished";
-        //readerThread->stopRead();
 
         m_adc_reader.stopACQ();
-
-       /* _reader->stopRead();
-        Sleep(200);
-        _thread->quit();
-        Sleep(200);
-        _thread->disconnect(_reader);
-        delete _thread;
-        _thread = NULL;
-        delete _reader;
-        _reader=NULL;*/
 
         curveBuffer->clean();
         settings.sync();
@@ -613,19 +559,6 @@ void TSController::startExam()
 
 m_adc_reader.startACQ();
 
-   /* _reader = new TSUsbDataReader();
-    _thread = new QThread();
-    _thread->setPriority(QThread::Priority::TimeCriticalPriority);
-    connect(_thread,SIGNAL(started()),_reader,SLOT(doWork()));
-    connect(_thread,SIGNAL(finished()),this,SLOT(stopExam()));
-    connect(_reader, SIGNAL(sendNewData(QVector<double>,QVector<double>,QVector<double>)),
-            curveBuffer, SLOT(appendData(QVector<double>,QVector<double>,QVector<double>)));
-    _reader->setBuffer(curveBuffer);
-    _reader->setReadingType(ReadAll);
-    _reader->moveToThread(_thread);
-
-    _thread->start();*/
-
     myTimer.start();
     recordingStarted = true;
     tempInScaleRate = 1.0/5000;
@@ -650,21 +583,8 @@ void TSController::stopExam()
     if(recordingStarted)
     {
         plotingTimer.stop();
-        //readerThread->stopRead();
-        int elap = myTimer.elapsed();
 
         m_adc_reader.stopACQ();
-
-      /*  _reader->stopRead();
-        Sleep(200);
-        _thread->quit();
-        Sleep(200);
-        _thread->disconnect(_reader);
-        delete _thread;
-        _thread = NULL;
-        delete _reader;
-        _reader=NULL;*/
-
 
         qDebug()<<"Stop exam";
         QSqlRecord record = examinationsModel->record();
@@ -713,12 +633,12 @@ void TSController::openPatientList()
     patientsModel->setFilter("");
     patientsModel->select();
     ui->patientsTableView->setModel(patientsModel);
-    ui->patientsTableView->setColumnHidden(0,true);
-    ui->patientsTableView->setColumnHidden(5,true);
-    ui->patientsTableView->setColumnHidden(6,true);
-    ui->patientsTableView->setColumnHidden(8,true);
-    ui->patientsTableView->setColumnHidden(9,true);
-    ui->patientsTableView->setColumnHidden(10,true);
+    ui->patientsTableView->setColumnHidden(0, true);
+    ui->patientsTableView->setColumnHidden(5, true);
+    ui->patientsTableView->setColumnHidden(6, true);
+    ui->patientsTableView->setColumnHidden(8, true);
+    ui->patientsTableView->setColumnHidden(9, true);
+    ui->patientsTableView->setColumnHidden(10, true);
     ui->mainBox->setCurrentIndex(2);
     ui->patientsTableView->horizontalHeader()->setDefaultSectionSize((ui->patientsTableView->width()-2)/5);
     ui->patientsTableView->setSelectionBehavior(QAbstractItemView::SelectRows);
@@ -750,21 +670,7 @@ void TSController::openPatientProfile(QModelIndex ind)
     ui->patientPageLabel->setText(tr("Пациент: ")+record.value("sname").toString()+" "+record.value("fname").toString()+
                                   " "+record.value("fdname").toString());
     openPrivateDB(record);
-    /*
-    examinationsConnection = QSqlDatabase::addDatabase("QSQLITE","ExamConnection");
-    QDir d("privatedb");
-    examinationsConnection.setDatabaseName("privatedb\\"+record.value("id").toString()
-                                           +"_"+record.value("code").toString()+".db");
-    if(!examinationsConnection.open()||!d.exists())
-    {
-        QMessageBox msg(this);
-        msg.setWindowTitle(tr("Ошибка"));
-        msg.setText(tr("Произошла потеря данных.\nВыполните восстановление."));
-        msg.exec();
-        ui->mainBox->setCurrentIndex(0);
-        return;
-    }
-    */
+
     patientsModel->setFilter("id="+record.value("id").toString());
     examinationsModel = new TSExaminations(examinationsConnection);
     ui->examsTableView->setModel(examinationsModel);
@@ -867,8 +773,7 @@ void TSController::openExam(QModelIndex ind)
     qDebug()<<"setVolumeConverts openExam "<<record.value("volOut").toInt()<<" "<<record.value("volIn").toInt();
     /* curveBuffer->setVolumeConverts(record.value("volOut").toInt(),
                                    record.value("volIn").toInt());*///перепутано
-    curveBuffer->setVolumeConverts(record.value("volIn").toInt(),
-                                   record.value("volOut").toInt());
+    curveBuffer->setVolumeConverts(record.value("volIn").toInt(), record.value("volOut").toInt());
     ui->startExam->setEnabled(false);
     ui->stopExam->setEnabled(false);
     ui->mainBox->setCurrentIndex(5);
@@ -999,7 +904,8 @@ void TSController::scaleForHorizontal(int value)
 void TSController::changeScrollBarAfterScaling(int before, int after)
 {
     // qDebug()<<"TSController::changeScrollBarAfterScaling";
-    if(after%2)return;
+    if(after%2)
+        return;
     int val = ui->horizontalScrollBar->value();
     if(before>after)
     {
@@ -1020,17 +926,9 @@ void TSController::changeTempInScrollValue(int value)
     plotNow();
 }
 
-/*void TSController::changeTempOutScrollValue(int value)
-{
-    //qDebug()<<"TSController::changeTempOutScrollValue";
-    tempOutZerPos = (-1)*value;
-    plotNow();
-}*/
-
 bool TSController::eventFilter(QObject *obj, QEvent *e)
 {
     //qDebug()<<"TSController::eventFilter";
-    //qDebug()<<"eventFilter";
 
     QMouseEvent *evt;
     if(e->type() == QEvent::MouseButtonPress)
@@ -1115,22 +1013,8 @@ QTableWidgetItem* TSController::getQTableWidgetItem(QVariant text){
 void TSController::breakExam()
 {
     //    qDebug()<<"TSController::breakExam";
-
-
     plotingTimer.stop();
     m_adc_reader.stopACQ();
-
-
-    /*_reader->stopRead();
-    Sleep(200);
-    _thread->quit();
-    Sleep(200);
-    _thread->disconnect(_reader);
-    delete _thread;
-    _thread = NULL;
-    delete _reader;
-    _reader=NULL;*/
-    //readerThread->stopRead();
 }
 
 void TSController::processDataParams(){
@@ -1142,9 +1026,7 @@ void TSController::processDataParams(){
     qtw->verticalHeader()->setVisible(false);
     qtw->setHorizontalHeaderLabels(QString(tr("Параметр;Значение")).split(";"));
     qtw->horizontalHeader()->setSectionResizeMode(QHeaderView::ResizeToContents);
-    /* tsanalitics* ga = new tsanalitics();
-    tstempanalitic* gao = new tstempanalitic();
-    tstempanalitic* gai = new tstempanalitic();*/
+
     float AvgExpirationSpeed=0, MaxExpirationSpeed=0, AvgExpirationTime=0, AvgInspirationTime=0,
             AvgRoundTime=0, AvgTempIn=0, AvgTempOut=0, AvgTempInMinusAvgTempOut=0,  BreathingVolume=0, MVL=0, MinuteVentilation=0;
     float InspirationFrequency=0;
@@ -1355,36 +1237,17 @@ void TSController::printReport()
     if (dialog->exec() == QDialog::Accepted){
         QPainter painter;
         painter.begin(&printer);
-        int i=0;
         pf.mainBox->render(&painter);
     }
 }
 
-/*float TSController::fabs(float a){
-    //    qDebug()<<"TSController::fabs";
-    if(a<0)
-        return -a;
-    else
-        return a;
-}*/
 
 void TSController::closeEvent(QCloseEvent *e){
     m_adc_reader.stopACQ();
-    /*if (_thread!=NULL){
-        if (_thread->isRunning()){
-            qDebug()<<"WTF";
-            _reader->stopRead();
-            Sleep(300);
-            _thread->quit();
-            Sleep(300);
-            _thread->disconnect(_reader);
-            delete _thread;
-            _thread = NULL;
-            delete _reader;
-            _reader=NULL;
-        }
-    }*/
     e->accept();
-    //delete readerThread;
 }
 
+void TSController::on_examsTableView_doubleClicked(const QModelIndex &index)
+{
+    emit openExam(index);
+}

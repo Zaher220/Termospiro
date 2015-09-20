@@ -12,7 +12,6 @@
 #include "models/TSPatients.h"
 #include <QTableWidget>
 #include "ui_tsprintview.h"
-//#include "tsusbdatareader.h"
 #include "volumesolver.h"
 #include <QTime>
 #include "ADCDataReader.h"
@@ -34,35 +33,39 @@ public:
     explicit TSController(QWidget *parent = 0);
     ~TSController();
 public slots:
-   // float fabs(float a);
     void editPatientProfile();
     void savePatientProfile();
+    void deletePatient(int index);
     void rejectPatientProfile();
+    void completePatientName(QString string);
+    void completePatientId();
+
     void calibrateVolume();
     void rejectColibration();
+    void plotCalibration();
+
     void startExam();
     void stopExam();
-    void scrollGraphics(int value);
+    void breakExam();
     void plotNow();
-    void plotCalibration();
+
     void openPatientList();
-    void completePatientName(QString string);
     void openPatientProfile(QModelIndex ind);
-    void showAverageData(int avgTempIn, int avgTempOut,int avgDO, int avgCHD);
-    void completePatientId();
-    void createNewExam();
+
     void openExam(QModelIndex ind);
+    void createNewExam();
+    void deleteExam(int index);
+
+    void showAverageData(int avgTempIn, int avgTempOut,int avgDO, int avgCHD);
+    void scrollGraphics(int value);
     void scaleTempIn(int value);
     void scaleTempOut(int value);
     void scaleVolume(int value);
     void scaleForHorizontal(int value);
     void changeScrollBarAfterScaling(int before,int after);
     void changeTempInScrollValue(int value);
-    //void changeTempOutScrollValue(int value);
-    void breakExam();
+
     void processDataParams();
-    void deletePatient(int index);
-    void deleteExam(int index);
     void printReport();
 protected:
     void initPaintDevices();
@@ -70,13 +73,13 @@ protected:
     bool eventFilter(QObject *obj, QEvent *e);
     void closeEvent(QCloseEvent *e);
     void openPrivateDB(QSqlRecord record);    
+private slots:
+    void on_examsTableView_doubleClicked(const QModelIndex &index);
+
 private:
     ADCDataReader m_adc_reader;
     RawDataParser m_raw_data_parser;
-    //Тред для чтения
-    //TSReaderThread *readerThread;
-   // TSUsbDataReader *_reader;
-    QThread *_thread;
+
     QWidget wpf;
     QDialog *mvlDialog;
     QTableWidgetItem* getQTableWidgetItem(QVariant text);
@@ -84,8 +87,7 @@ private:
     Ui::MainWindow *w;
     Ui::TSVolSignalWidget *volWidget;
     CurrentAction currentAction;
-    /*QRegExp nameRegExp;
-    QRegExp intRegExp;*/
+
     bool openUser;
     //Все для рисования
     TSCurveBuffer* curveBuffer;
@@ -109,18 +111,18 @@ private:
     int cH;
     int cW;
     bool recordingStarted;
-    float volumeScaleRate;
-    float tempInScaleRate;
-    float tempOutScaleRate;
-    float horizontalStep;
+    double volumeScaleRate;
+    double tempInScaleRate;
+    double tempOutScaleRate;
+    double horizontalStep;
     int tempInZerPos;
     int tempOutZerPos;
     int scaleScroll[5];
     int* tempInInterval;
-    float tempInAdaptive;
+    double tempInAdaptive;
     int* tempOutInterval;
-    float tempOutAdaptive;
-    float volumeAdaptive;
+    double tempOutAdaptive;
+    double volumeAdaptive;
     int maxcVol;
 
     //модели
