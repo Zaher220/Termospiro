@@ -12,7 +12,7 @@
 #include "models/TSPatients.h"
 #include <QTableWidget>
 #include "ui_tsprintview.h"
-#include "tsusbdatareader.h"
+//#include "tsusbdatareader.h"
 #include "volumesolver.h"
 #include <QTime>
 #include "ADCDataReader.h"
@@ -30,21 +30,16 @@ enum CurrentAction {NoAction,CreatePatientProfileAction,EditPatientProfileAction
 class TSController : public QMainWindow
 {
     Q_OBJECT
-
 public:
     explicit TSController(QWidget *parent = 0);
     ~TSController();
-
 public slots:
    // float fabs(float a);
-    void incCurrentIndex();
-    void decCurrentIndex();
     void editPatientProfile();
     void savePatientProfile();
     void rejectPatientProfile();
     void calibrateVolume();
     void rejectColibration();
-    void threadFinished();
     void startExam();
     void stopExam();
     void scrollGraphics(int value);
@@ -63,7 +58,7 @@ public slots:
     void scaleForHorizontal(int value);
     void changeScrollBarAfterScaling(int before,int after);
     void changeTempInScrollValue(int value);
-    void changeTempOutScrollValue(int value);
+    //void changeTempOutScrollValue(int value);
     void breakExam();
     void processDataParams();
     void deletePatient(int index);
@@ -74,7 +69,7 @@ protected:
     void resizeEvent(QResizeEvent *evt);
     bool eventFilter(QObject *obj, QEvent *e);
     void closeEvent(QCloseEvent *e);
-    void openPrivateDB(QSqlRecord record);
+    void openPrivateDB(QSqlRecord record);    
 private:
     ADCDataReader m_adc_reader;
     RawDataParser m_raw_data_parser;
@@ -89,8 +84,8 @@ private:
     Ui::MainWindow *w;
     Ui::TSVolSignalWidget *volWidget;
     CurrentAction currentAction;
-    QRegExp nameRegExp;
-    QRegExp intRegExp;
+    /*QRegExp nameRegExp;
+    QRegExp intRegExp;*/
     bool openUser;
     //Все для рисования
     TSCurveBuffer* curveBuffer;

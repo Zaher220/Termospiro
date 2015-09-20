@@ -30,84 +30,138 @@ bool ADCDataReader::initADC()
     printf(" **********************************************\n\n");
 
     // проверим версию используемой библиотеки Rtusbapi.dll
-    if ((DllVersion = RtGetDllVersion()) != CURRENT_VERSION_RTUSBAPI)
-    {
+    if ((DllVersion = RtGetDllVersion()) != CURRENT_VERSION_RTUSBAPI){
         char String[128];
         sprintf(String, " Rtusbapi.dll Version Error!!!\n   Current: %1u.%1u. Required: %1u.%1u",
                 DllVersion >> 0x10, DllVersion & 0xFFFF,
                 CURRENT_VERSION_RTUSBAPI >> 0x10, CURRENT_VERSION_RTUSBAPI & 0xFFFF);
 
         TerminateApplication(String, false);
+        return false;
     }
-    else printf(" Rtusbapi.dll Version --> OK\n");
+    else
+        printf(" Rtusbapi.dll Version --> OK\n");
 
     // получим указатель на интерфейс модуля USB3000
-    pModule = static_cast<IRTUSB3000 *>(RtCreateInstance("usb3000"));
-    if (!pModule) TerminateApplication(" Module Interface --> Bad\n");
-    else printf(" Module Interface --> OK\n");
+    char ss[] = "usb3000";
+    char *s = ss;
+    pModule = static_cast<IRTUSB3000 *>(RtCreateInstance(s));
+    if (!pModule){
+        TerminateApplication(" Module Interface --> Bad\n");
+        return false;
+    }
+    else
+        printf(" Module Interface --> OK\n");
 
     // попробуем обнаружить модуль USB3000 в первых 127 виртуальных слотах
     for (i = 0x0; i < MaxVirtualSoltsQuantity; i++) if (pModule->OpenDevice(i)) break;
     // что-нибудь обнаружили?
-    if (i == MaxVirtualSoltsQuantity) TerminateApplication(" Can't find module USB3000 in first 127 virtual slots!\n");
-    else printf(" OpenDevice(%u) --> OK\n", i);
+    if (i == MaxVirtualSoltsQuantity){
+        TerminateApplication(" Can't find module USB3000 in first 127 virtual slots!\n");
+        return false;
+    }
+    else
+        printf(" OpenDevice(%u) --> OK\n", i);
 
     // попробуем получить дескриптор (handle) устройства
     ModuleHandle = pModule->GetModuleHandle();
-    if (ModuleHandle == INVALID_HANDLE_VALUE) TerminateApplication(" GetModuleHandle() --> Bad\n");
+    if (ModuleHandle == INVALID_HANDLE_VALUE){
+        TerminateApplication(" GetModuleHandle() --> Bad\n");
+        return false;
+    }
     else printf(" GetModuleHandle() --> OK\n");
 
     // прочитаем название обнаруженного модуля
-    if (!pModule->GetModuleName(ModuleName)) TerminateApplication(" GetModuleName() --> Bad\n");
-    else printf(" GetModuleName() --> OK\n");
+    if (!pModule->GetModuleName(ModuleName)) {
+        TerminateApplication(" GetModuleName() --> Bad\n");
+        return false;
+    }
+    else
+        printf(" GetModuleName() --> OK\n");
 
     // проверим, что это 'USB3000'
-    if (strcmp(ModuleName, "USB3000")) TerminateApplication(" The module is not 'USB3000'\n");
-    else printf(" The module is 'USB3000'\n");
+    if (strcmp(ModuleName, "USB3000")) {
+        TerminateApplication(" The module is not 'USB3000'\n");
+        return false;
+    }
+    else
+        printf(" The module is 'USB3000'\n");
 
     // узнаем текущую скорость работы шины USB20
-    if (!pModule->GetUsbSpeed(&UsbSpeed)) TerminateApplication(" GetUsbSpeed() --> Bad\n");
-    else printf(" GetUsbSpeed() --> OK\n");
+    if (!pModule->GetUsbSpeed(&UsbSpeed)){
+        TerminateApplication(" GetUsbSpeed() --> Bad\n");
+        return false;
+    }
+    else
+        printf(" GetUsbSpeed() --> OK\n");
     // теперь отобразим версию драйвера AVR
     printf(" USB Speed is %s\n", UsbSpeed ? "HIGH (480 Mbit/s)" : "FULL (12 Mbit/s)");
 
     // прочитаем серийный номер модуля
-    if (!pModule->GetModuleSerialNumber(ModuleSerialNumber)) TerminateApplication(" GetModuleSerialNumber() --> Bad\n");
-    else printf(" GetModuleSerialNumber() --> OK\n");
+    if (!pModule->GetModuleSerialNumber(ModuleSerialNumber)){
+        TerminateApplication(" GetModuleSerialNumber() --> Bad\n");
+        return false;
+    }
+    else
+        printf(" GetModuleSerialNumber() --> OK\n");
     // теперь отобразим серийный номер модуля
     printf(" Module Serial Number is %s\n", ModuleSerialNumber);
 
     // прочитаем версию драйвера AVR
-    if (!pModule->GetAvrVersion(AvrVersion)) TerminateApplication(" GetAvrVersion() --> Bad\n");
-    else printf(" GetAvrVersion() --> OK\n");
+    if (!pModule->GetAvrVersion(AvrVersion)) {
+        TerminateApplication(" GetAvrVersion() --> Bad\n");
+        return false;
+    }
+    else
+        printf(" GetAvrVersion() --> OK\n");
     // теперь отобразим версию драйвера AVR
     printf(" Avr Driver Version is %s\n", AvrVersion);
 
     // код драйвера DSP возьмём из соответствующего ресурса штатной DLL библиотеки
-    if (!pModule->LOAD_DSP()) TerminateApplication(" LOAD_DSP() --> Bad\n");
-    else printf(" LOAD_DSP() --> OK\n");
+    if (!pModule->LOAD_DSP()) {
+        TerminateApplication(" LOAD_DSP() --> Bad\n");
+        return false;
+    }
+    else
+        printf(" LOAD_DSP() --> OK\n");
 
     // проверим загрузку модуля
-    if (!pModule->MODULE_TEST()) TerminateApplication(" MODULE_TEST() --> Bad\n");
-    else printf(" MODULE_TEST() --> OK\n");
+    if (!pModule->MODULE_TEST()) {
+        TerminateApplication(" MODULE_TEST() --> Bad\n");
+        return false;
+    }
+    else
+        printf(" MODULE_TEST() --> OK\n");
 
     // получим версию загруженного драйвера DSP
-    if (!pModule->GET_DSP_INFO(&di)) TerminateApplication(" GET_DSP_VERSION() --> Bad\n");
-    else printf(" GET_DSP_VERSION() --> OK\n");
+    if (!pModule->GET_DSP_INFO(&di)) {
+        TerminateApplication(" GET_DSP_VERSION() --> Bad\n");
+        return false;
+    }
+    else
+        printf(" GET_DSP_VERSION() --> OK\n");
     // теперь отобразим версию загруженного драйвера DSP
     printf(" DSP Driver version is %1u.%1u\n", di.DspMajor, di.DspMinor);
 
     // обязательно проинициализируем поле size структуры RTUSB3000::FLASH
     fi.size = sizeof(RTUSB3000::FLASH);
     // получим информацию из ППЗУ модуля
-    if (!pModule->GET_FLASH(&fi)) TerminateApplication(" GET_MODULE_DESCR() --> Bad\n");
-    else printf(" GET_MODULE_DESCR() --> OK\n");
+    if (!pModule->GET_FLASH(&fi)) {
+        TerminateApplication(" GET_MODULE_DESCR() --> Bad\n");
+        return false;
+    }
+    else
+        printf(" GET_MODULE_DESCR() --> OK\n");
 
     // обязательно проинициализируем поле size структуры RTUSB3000::INPUT_PARS
     ip.size = sizeof(RTUSB3000::INPUT_PARS);
     // получим текущие параметры работы АЦП
-    if (!pModule->GET_INPUT_PARS(&ip)) TerminateApplication(" GET_INPUT_PARS() --> Bad\n");
-    else printf(" GET_INPUT_PARS() --> OK\n");
+    if (!pModule->GET_INPUT_PARS(&ip)){
+        TerminateApplication(" GET_INPUT_PARS() --> Bad\n");
+        return false;
+    }
+    else
+        printf(" GET_INPUT_PARS() --> OK\n");
 
     // установим желаемые параметры АЦП
     ip.CorrectionEnabled = true;				// разрешим корректировку вводимых данных
@@ -124,10 +178,15 @@ bool ADCDataReader::initADC()
     ip.InputFifoLength = 0x3000;	 			// длина FIFO буфера АЦП
     ip.InputFifoLength = 0x400;
     // будем использовать фирменные калибровочные коэффициенты, которые храняться в ППЗУ модуля
-    for (i = 0x0; i < 8; i++) { ip.AdcOffsetCoef[i] = fi.AdcOffsetCoef[i]; ip.AdcScaleCoef[i] = fi.AdcScaleCoef[i]; }
+    for (i = 0x0; i < 8; i++) {
+        ip.AdcOffsetCoef[i] = fi.AdcOffsetCoef[i];
+        ip.AdcScaleCoef[i] = fi.AdcScaleCoef[i];
+    }
     // передадим требуемые параметры работы АЦП в модуль
-    if (!pModule->SET_INPUT_PARS(&ip))
+    if (!pModule->SET_INPUT_PARS(&ip)){
         TerminateApplication(" SET_INPUT_PARS() --> Bad\n");
+        return false;
+    }
     else
         printf(" SET_INPUT_PARS() --> OK\n");
 
@@ -359,7 +418,7 @@ void ADCDataReader::ShowThreadErrorMessage(void)
 //------------------------------------------------------------------------
 // вывод сообщения и, если нужно, аварийный выход из программы
 //------------------------------------------------------------------------
-void ADCDataReader::TerminateApplication(char *ErrorString, bool TerminationFlag)
+void ADCDataReader::TerminateApplication(QString ErrorString, bool TerminationFlag)
 {
     // подчищаем интерфейс модуля
     if (pModule)
@@ -390,8 +449,10 @@ void ADCDataReader::TerminateApplication(char *ErrorString, bool TerminationFlag
     }*/
 
     // выводим текст сообщения
-    if (ErrorString)
-        printf(ErrorString);
+    if ( ErrorString.length() > 0 )
+        printf("%s",ErrorString.toStdString().c_str());
+    /*if (ErrorString)
+        printf(ErrorString);*/
 
     // если нужно - аварийно завершаем программу
     /*if (TerminationFlag)
@@ -478,6 +539,16 @@ void ADCDataReader::stopACQ()
         printf("\n");
         TerminateApplication("\n The program was completed successfully!!!\n", false);
     }
+}
+
+bool ADCDataReader::isReady()
+{
+    if( initADC()){
+        TerminateApplication("On test init");
+        return true;
+    }else
+        return false;
+
 }
 
 std::vector<std::vector<short>> ADCDataReader::getACQData()

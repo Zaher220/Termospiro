@@ -129,18 +129,6 @@ TSController::~TSController()
     delete ui;
 }
 
-void TSController::incCurrentIndex()
-{
-    qDebug()<<"TSController::incCurrentIndex";
-    ui->mainBox->setCurrentIndex(ui->mainBox->currentIndex()+1);
-}
-
-void TSController::decCurrentIndex()
-{
-    qDebug()<<"TSController::decCurrentIndex";
-    ui->mainBox->setCurrentIndex(ui->mainBox->currentIndex()-1);
-}
-
 void TSController::editPatientProfile()
 {
     qDebug()<<"TSController::editPatientProfile";
@@ -431,12 +419,6 @@ void TSController::initPaintDevices()
     pTempOut.begin(&bTempOut);
     screenLimit = W;
     startIndex = 0;
-}
-
-void TSController::threadFinished()
-{
-    //qDebug()<<"TSController::threadFinished";
-    qDebug()<<"tread is finished";
 }
 
 void TSController::plotNow()
@@ -828,8 +810,9 @@ void TSController::scrollGraphics(int value)
 }
 
 void TSController::createNewExam(){
-    TSUsbDataReader usbdatareader;
-    if ( usbdatareader.isReady() == true ){
+    //TSUsbDataReader usbdatareader;
+   // if ( usbdatareader.isReady() == true ){
+    if ( m_adc_reader.isReady() == true ){
         if ( pcVolume.isActive() )
             pcVolume.end();
         qDebug()<<"TSController::createNewExam";
@@ -1037,12 +1020,12 @@ void TSController::changeTempInScrollValue(int value)
     plotNow();
 }
 
-void TSController::changeTempOutScrollValue(int value)
+/*void TSController::changeTempOutScrollValue(int value)
 {
     //qDebug()<<"TSController::changeTempOutScrollValue";
     tempOutZerPos = (-1)*value;
     plotNow();
-}
+}*/
 
 bool TSController::eventFilter(QObject *obj, QEvent *e)
 {
@@ -1404,3 +1387,4 @@ void TSController::closeEvent(QCloseEvent *e){
     e->accept();
     //delete readerThread;
 }
+

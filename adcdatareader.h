@@ -22,6 +22,7 @@ public:
 //public slots:
     void startACQ();
     void stopACQ();
+    bool isReady();
 signals:
     void sendACQData(std::vector<std::vector<short>>);
     void done();
@@ -29,7 +30,7 @@ signals:
 private:
     bool initADC();
     void ShowThreadErrorMessage(void);
-    void TerminateApplication(char *ErrorString, bool TerminationFlag = false);
+    void TerminateApplication(QString ErrorString, bool TerminationFlag = false);
     bool WaitingForRequestCompleted(OVERLAPPED *ReadOv);
     bool is_acq_started = false;
 
