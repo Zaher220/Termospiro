@@ -40,20 +40,22 @@ TSController::TSController(QWidget *parent):QMainWindow(parent),ui(new Ui::TSVie
     QSettings settings("settings.ini",QSettings::IniFormat);
 
     ui->setupUi(this);
-    ui->mainBox->setCurrentIndex(0);
+
     currentAction = NoAction;
     openUser = false;
-    curveBuffer = new TSCurveBuffer();
-    volume = curveBuffer->volume();
-    tempIn = curveBuffer->tempIn();
-    tempOut = curveBuffer->tempOut();
-    curveBuffer->setReference(&settings);
+
+    m_plotter.setCurveBuffer(&curveBuffer);
+
+    curveBuffer.setReference(&settings);
     recordingStarted = false;
-    tempInInterval = curveBuffer->getTempInInterval();
-    tempInAdaptive = 1.0;
-    tempOutInterval = curveBuffer->getTempOutInterval();
-    tempOutAdaptive = 1.0;
-    scaleScroll[0]=1;scaleScroll[1]=3;scaleScroll[2]=5;scaleScroll[3]=7;scaleScroll[4]=9;
+
+
+    m_plotter.setTempInInterval(curveBuffer.getTempInInterval());
+    m_plotter.setTempInAdaptive(1.0);
+    m_plotter.setTempOutInterval(curveBuffer.getTempOutInterval());
+    m_plotter.setTempOutAdaptive(1.0);
+
+
     ui->managmentBox->setVisible(false);
     ui->vertLabel->setVisible(false);
     ui->horLabel->setVisible(false);
@@ -79,11 +81,11 @@ TSController::TSController(QWidget *parent):QMainWindow(parent),ui(new Ui::TSVie
     connect(ui->ignoreCalibrateButton,SIGNAL(clicked()),this,SLOT(rejectColibration()));
     connect(ui->volumeCalibrateButton,SIGNAL(clicked()),this,SLOT(calibrateVolume()));
     connect(ui->startExam,SIGNAL(clicked()),this,SLOT(startExam()));
-    connect(&plotingTimer,SIGNAL(timeout()),this,SLOT(plotNow()));
+    //connect(&plotingTimer,SIGNAL(timeout()),this,SLOT(plotNow()));
     connect(ui->openButton,SIGNAL(clicked()),this,SLOT(openPatientList()));
     connect(ui->nameFilterEdit,SIGNAL(textChanged(QString)),this,SLOT(completePatientName(QString)));
     connect(ui->patientsTableView,SIGNAL(doubleClicked(QModelIndex)),this,SLOT(openPatientProfile(QModelIndex)));
-    connect(curveBuffer,SIGNAL(updateAverageData(int,int,int,int)),this,SLOT(showAverageData(int,int,int,int)));
+    connect(&curveBuffer,SIGNAL(updateAverageData(int,int,int,int)),this,SLOT(showAverageData(int,int,int,int)));
     connect(ui->fName,SIGNAL(editingFinished()),this,SLOT(completePatientId()));
     connect(ui->sName,SIGNAL(editingFinished()),this,SLOT(completePatientId()));
     connect(ui->fdName,SIGNAL(editingFinished()),this,SLOT(completePatientId()));
@@ -97,12 +99,12 @@ TSController::TSController(QWidget *parent):QMainWindow(parent),ui(new Ui::TSVie
     connect(ui->examsTableView,SIGNAL(doubleClicked(QModelIndex)),this, SLOT(openExam(QModelIndex)));
     connect(ui->examsTableView,SIGNAL(deleteRequest(int)),this,SLOT(deleteExam(int)));
 
-    connect(ui->tempInScaleSlider,SIGNAL(valueChanged(int)),this,SLOT(scaleTempIn(int)));
-    connect(ui->tempOutScaleSlider,SIGNAL(valueChanged(int)),this,SLOT(scaleTempOut(int)));
-    connect(ui->volumeScaleSlider,SIGNAL(valueChanged(int)),this,SLOT(scaleVolume(int)));
-    connect(ui->horScaleSlider,SIGNAL(valueChanged(int)),this,SLOT(scaleForHorizontal(int)));
+    connect(ui->tempInScaleSlider,SIGNAL(valueChanged(int)), &m_plotter, SLOT(scaleTempIn(int)));
+    connect(ui->tempOutScaleSlider,SIGNAL(valueChanged(int)), &m_plotter,SLOT(scaleTempOut(int)));
+    connect(ui->volumeScaleSlider,SIGNAL(valueChanged(int)), &m_plotter,SLOT(scaleVolume(int)));
+    connect(ui->horScaleSlider,SIGNAL(valueChanged(int)), &m_plotter,SLOT(scaleForHorizontal(int)));
     connect(ui->horScaleSlider,SIGNAL(rangeChanged(int,int)),this,SLOT(changeScrollBarAfterScaling(int,int)));
-    connect(ui->tempInScroll,SIGNAL(valueChanged(int)),this,SLOT(changeTempInScrollValue(int)));
+    connect(ui->tempInScroll,SIGNAL(valueChanged(int)), &m_plotter,SLOT(changeTempInScrollValue(int)));
     connect(ui->breakExamButton,SIGNAL(clicked()),this,SLOT(breakExam()));
     connect(ui->resultsButton,SIGNAL(clicked()),this,SLOT(processDataParams()));
     connect(ui->patientsTableView,SIGNAL(deleteRequest(int)),this,SLOT(deletePatient(int)));
@@ -115,12 +117,15 @@ TSController::TSController(QWidget *parent):QMainWindow(parent),ui(new Ui::TSVie
     ui->backExamButton->installEventFilter(this);
 
     connect(&m_adc_reader, SIGNAL(sendACQData(std::vector<std::vector<short> >)), &m_raw_data_parser, SLOT(setACQData(std::vector<std::vector<short> >)));
-    connect(&m_raw_data_parser, SIGNAL(sendNewData(QVector<double>,QVector<double>,QVector<double>)), curveBuffer, SLOT(appendData(QVector<double>,QVector<double>,QVector<double>)));
+    connect(&m_raw_data_parser, SIGNAL(sendNewData(QVector<double>,QVector<double>,QVector<double>)), &curveBuffer, SLOT(appendData(QVector<double>,QVector<double>,QVector<double>)));
 
     ui->examsTableView->setEditTriggers(QTableView::NoEditTriggers);;
     //connect(reader,SIGNAL(done()),&d,SLOT(accept()));
     // connect(reader,SIGNAL(changeProgress(int)),dui.progressBar,SLOT(setValue(int)));
-    //this->processDataParams();
+    ui->mainBox->setCurrentIndex(0);
+    m_plotter.setUi(ui);
+    m_plotter.setParentWindow(this);
+    connect(&m_plotter, SIGNAL(stopACQU()), &m_adc_reader, SLOT(stopACQ()));
 }
 
 TSController::~TSController()
@@ -190,53 +195,6 @@ void TSController::savePatientProfile()
     QStringList d = ui->date->text().split("-");
     QString date = d.at(2)+"-"+d.at(1)+"-"+d.at(0);
     record.setValue("birth_date",date);
-    /*
-    QString string;
-    string = ui->sName->text().toUpper();
-    if(TSValidationTools::isNameString(string)==false)
-    {
-        msgBox.setInformativeText(tr("Поле фамилия не должно содержать ничего кроме букв русского алфавита"));
-        msgBox.exec();
-        return;
-    }
-    else
-        record.setValue("sname",string);
-    string = ui->fName->text().toUpper();
-    if(TSValidationTools::isNameString(string)==false)
-    {
-        msgBox.setInformativeText(tr("Поле имя не должно содержать ничего кроме букв русского алфавита"));
-        msgBox.exec();
-        return;
-    }
-    else
-        record.setValue("fname",string);
-    string = ui->fdName->text().toUpper();
-    if(TSValidationTools::isNameString(string)==false)
-    {
-        msgBox.setInformativeText(tr("Поле отчество не должна содержать ничего кроме букв русского алфавита"));
-        msgBox.exec();
-        return;
-    }
-    else
-        record.setValue("fdname",string);
-    string = ui->mvl->text().toUpper();
-    if(TSValidationTools::isInt(string)==false)
-    {
-        msgBox.setInformativeText(tr("Поле МВЛ должно содержать целое число"));
-        msgBox.exec();
-        return;
-    }
-    else
-        record.setValue("mvl",string);
-    if(ui->mGenderRadio->isChecked())
-        record.setValue("gender",tr("м"));
-    if(ui->fGenderRadio->isChecked())
-        record.setValue("gender",tr("ж"));
-    QStringList d = ui->date->text().split("-");
-    QString date = d.at(2)+"-"+d.at(1)+"-"+d.at(0);
-    record.setValue("birth_date",date);
-    record.setValue("code",ui->idEdit->text());
-    */
 
     switch(currentAction)
     {
@@ -328,7 +286,7 @@ void TSController::calibrateVolume(){
     m_adc_reader.startACQ();
 
     if(d.exec()==1){
-        settings.setValue("volZero",curveBuffer->volumeColibration());
+        settings.setValue("volZero",curveBuffer.volumeColibration());
         dui.information->setText(tr("Подготовка завершена.\nНажмите ОК и качайте шприцем."));
         dui.progressBar->setVisible(false);
         dui.acceptButton->setVisible(true);
@@ -337,212 +295,33 @@ void TSController::calibrateVolume(){
 
 
     d.exec();
-    connect(&cPlotingTimer,SIGNAL(timeout()),this,SLOT(plotCalibration()));
+    //connect(&cPlotingTimer,SIGNAL(timeout()),this,SLOT(plotCalibration()));
 
     m_adc_reader.startACQ();
-    cPlotingTimer.start(100);
+    m_plotter.startCPlottingTimer(100);
 }
 
 void TSController::rejectColibration()
 {
     //qDebug()<<"TSController::rejectColibration";
     QSettings settings("settings.ini",QSettings::IniFormat);
-    curveBuffer->setVolumeColibration(settings.value("volZero").toInt(),false);
-    qDebug()<<"volColibr: "<<curveBuffer->volumeColibration();
+    curveBuffer.setVolumeColibration(settings.value("volZero").toInt(),false);
+    qDebug()<<"volColibr: "<<curveBuffer.volumeColibration();
     qDebug()<<"setVolumeConverts rejectColibration "<<settings.value("volInLtr").toInt()<<" "<<settings.value("volOutLtr").toInt();
-    curveBuffer->setVolumeConverts(settings.value("volInLtr").toInt(), settings.value("volOutLtr").toInt());
+    curveBuffer.setVolumeConverts(settings.value("volInLtr").toInt(), settings.value("volOutLtr").toInt());
     ui->mainBox->setCurrentIndex(5);
-    curveBuffer->setEnd(0);
+    curveBuffer.setEnd(0);
     ui->startExam->setEnabled(true);
     ui->stopExam->setEnabled(true);
-    initPaintDevices();
-    plotNow();
+
+    m_plotter.initPaintDevices();
+    m_plotter.plotNow();
+    //initPaintDevices();
+    //plotNow();
+
     ui->managmentSpaser->setGeometry(QRect(0,0,350,2));
     ui->managmentBox->setVisible(true);
     ui->managmentBox->setEnabled(true);
-
-}
-
-void TSController::initPaintDevices()
-{
-    //qDebug()<<"TSController::initPaintDevices";
-    H = ui->gVolume->height();
-    W = ui->gVolume->width();
-    if(pVolume.isActive()) pVolume.end();
-    if(pTempIn.isActive()) pTempIn.end();
-    if(pTempOut.isActive()) pTempOut.end();
-    bVolume = QPixmap(W,H);
-    bTempIn = QPixmap(W,H);
-    bTempOut = QPixmap(W,H);
-    pVolume.begin(&bVolume);
-    pTempIn.begin(&bTempIn);
-    pTempOut.begin(&bTempOut);
-    screenLimit = W;
-    startIndex = 0;
-}
-
-void TSController::plotNow()
-{
-    //qDebug()<<"TSController::plotNow";
-    int endIndex = curveBuffer->end();
-    if(endIndex == 17999)plotingTimer.stop();
-    int h = ui->gVolume->height()/2;
-    //int h1 = ui->gVolume->height()-5;
-    int step = h/10;
-    startIndex = endIndex - (W-35);
-    if(startIndex < 0) startIndex = 0;
-    if(h%10>=5)
-    {
-        h+=step/2;
-    }
-    pVolume.fillRect(0,0,W,H,Qt::white);
-    pTempIn.fillRect(0,0,W,H,Qt::white);
-    pTempOut.fillRect(0,0,W,H,Qt::white);
-    int i;
-    pVolume.setPen(QColor(225,225,225));
-    pTempIn.setPen(QColor(225,225,225));
-    pTempOut.setPen(QColor(225,225,225));
-    for(i=step;i<h;i+=step)
-    {
-        pVolume.drawLine(0,h+i,W,h+i);
-        pTempIn.drawLine(0,h+i,W,h+i);
-        pTempOut.drawLine(0,h+i,W,h+i);
-        pVolume.drawLine(0,h-i,W,h-i);
-        pTempIn.drawLine(0,h-i,W,h-i);
-        pTempOut.drawLine(0,h-i,W,h-i);
-    }
-    for(i=10;i<W;i+=10)
-    {
-        pVolume.drawLine(i,0,i,h<<1);
-        pTempIn.drawLine(i,0,i,h<<1);
-        pTempOut.drawLine(i,0,i,h<<1);
-    }
-    pVolume.setPen(QColor(0,0,0));
-    pTempIn.setPen(QColor(0,0,0));
-    pTempOut.setPen(curveBuffer->toutColor);
-
-    pVolume.setPen(QColor(255,0,0));
-    int* tinInt = curveBuffer->getTempInInterval();
-    int* toutInt = curveBuffer->getTempOutInterval();
-    int* volInt = curveBuffer->getVolumeInterval();
-    float tempInK = 1;//tempInScaleRate*h;//*abs(tempInInterval[0]-tempInInterval[1])/abs(tinInt[1]-tinInt[0]);
-    float tempOutK = 1;//tempOutScaleRate*h;
-    float tempInZ = h;// + tempInZerPos*h;
-    float tempOutZ = h;// + tempInZerPos*h;
-    tempInAdaptive = (float)H/
-            (tinInt[1]-tinInt[0]);
-    tempOutAdaptive = (float)H/
-            (toutInt[1]-toutInt[0]);
-    volumeAdaptive = (float)H/(volInt[1]-volInt[0]);
-    tempInZ = h + ceil((float)(tinInt[1]+tinInt[0])*tempInAdaptive*tempInK/2);
-    tempOutZ = h + ceil((float)(toutInt[1]+toutInt[0])*tempOutAdaptive*tempOutK/2);
-    float volumeK =1;// volumeScaleRate*h;
-    int j = 0, k = 1/horizontalStep;
-    i=0;
-    for(j=0;j<W-35;j+=1)
-    {
-        if(i+startIndex>=k*endIndex)break;
-        pVolume.drawLine(j,h-volumeK*volumeAdaptive*volume[i+startIndex]
-                ,j+1,h-volumeK*volumeAdaptive*volume[i+startIndex+k]);
-        pTempIn.drawLine(j,tempInZ-tempInK*tempInAdaptive*tempIn[i+startIndex]
-                ,j+1,tempInZ-tempInK*tempInAdaptive*tempIn[i+startIndex+k]);
-        pTempOut.drawLine(j,tempOutZ-tempOutK*tempOutAdaptive*tempOut[i+startIndex]
-                ,j+1,tempOutZ-tempOutK*tempOutAdaptive*tempOut[i+startIndex+k]);
-        i+=k;
-    }
-    ui->gVolume->setPixmap(bVolume);
-    ui->gTempIn->setPixmap(bTempIn);
-    ui->gTempOut->setPixmap(bTempOut);
-    if(recordingStarted)
-    {
-        ui->horizontalScrollBar->setEnabled(false);
-        ui->horizontalScrollBar->setMaximum(startIndex/10);
-        ui->horizontalScrollBar->setValue(startIndex/10);
-    }
-}
-
-void TSController::plotCalibration(){
-    // qDebug()<<"TSController::plotCalibration";
-    int endIndex = curveBuffer->getLenght();
-    if(endIndex < 1200){
-        pcVolume.fillRect(0,0,cW,cH,Qt::white);
-        int h = cH/2;
-        int step = h/10;
-        if(h%10>=5){
-            h+=step/2;
-        }
-        int i;
-        pcVolume.setPen(QColor(225,225,225));
-        for(i=step;i<h;i+=step){
-            pcVolume.drawLine(0,h+i,cW,h+i);
-            pcVolume.drawLine(0,h-i,cW,h-i);
-        }
-        for(i=10;i<cW;i+=10){
-            pcVolume.drawLine(i,0,i,cH);
-        }
-        if(endIndex>50){
-            for(int i=endIndex-50;i<endIndex;i++){
-                if(abs(volume[i])>maxcVol) maxcVol = abs(volume[i]);
-            }
-        }
-
-        float K = (float)(h-10)/maxcVol;
-        step = ceil((float)1200/cW);
-        pcVolume.setPen(QColor(0,0,0));
-        int j=0;
-        for(i=0;i<cW-1;i++){
-            if(i>=endIndex||j+step>=endIndex)break;
-            pcVolume.drawLine(i,h-K*volume[j],i+1,h-K*volume[j+step]);
-            j+=step;
-        }
-        ui->calibrateVolumeAnimation->setPixmap(bcVolume);
-    }
-    else{
-        cPlotingTimer.stop();
-        QSettings settings("settings.ini",QSettings::IniFormat);
-        QDialog d(this);
-        Ui::TSProgressDialog dui;
-        dui.setupUi(&d);
-        d.setWindowTitle(tr("Предупреждение"));
-        int *vol = curveBuffer->volume();
-        tsanalitics ta;
-        qDebug()<<"curvebuff end "<<curveBuffer->end();
-        for(int i=0;i<curveBuffer->end();i++){
-            ta.append(vol[i]);
-        }
-        ta.approximate();
-        qDebug()<<"get min "<<ta.getMin()<<" ; get max "<<ta.getMax();
-        settings.setValue("volOutLtr",ta.getMin());
-        settings.setValue("volInLtr",ta.getMax());
-        qDebug()<<"setVolumeConverts plotCalibration "<<ta.getMin()<<" "<<ta.getMax();
-        curveBuffer->setVolumeConverts(ta.getMax(),ta.getMin());
-
-        qDebug()<<"reading is finished";
-
-        m_adc_reader.stopACQ();
-
-        curveBuffer->clean();
-        settings.sync();
-        dui.progressBar->setVisible(false);
-        dui.acceptButton->setVisible(true);
-        dui.information->setText(tr("Калибровка успешно завершена.\nНажмите ОК для продолжения."));
-        if(d.exec()==1){
-            ui->mainBox->setCurrentIndex(5);
-            ui->managmentSpaser->setGeometry(QRect(0,0,350,2));
-            ui->managmentBox->setVisible(true);
-            ui->managmentBox->setEnabled(true);
-            ui->startExam->setEnabled(true);
-            ui->stopExam->setEnabled(true);
-            curveBuffer->setEnd(0);
-            initPaintDevices();
-            plotNow();
-        }
-        curveBuffer->setEnd(0);
-        maxcVol = 0;
-        ui->volumeInfoLabel->setVisible(false);
-        ui->tinInfoLabel->setVisible(false);
-        ui->toutInfolabel->setVisible(false);
-    }
 
 }
 
@@ -555,18 +334,20 @@ void TSController::startExam()
     ui->volumeInfoLabel->setVisible(true);
     ui->tinInfoLabel->setVisible(true);
     ui->toutInfolabel->setVisible(true);
-    curveBuffer->clean();
+    curveBuffer.clean();
 
-m_adc_reader.startACQ();
+    m_adc_reader.startACQ();
 
     myTimer.start();
     recordingStarted = true;
-    tempInScaleRate = 1.0/5000;
-    tempOutScaleRate = 1.0/5000;
-    volumeScaleRate = 1.0/5000;
-    horizontalStep = 1.0;
-    initPaintDevices();
-    plotingTimer.start(100);
+
+    m_plotter.setTempInScaleRate(1.0/5000);
+    m_plotter.setTempOutScaleRate(1.0/5000);
+    m_plotter.setVolumeScaleRate(1.0/5000);
+    m_plotter.setHorizontalStep(1.0);
+    m_plotter.initPaintDevices();
+    m_plotter.startPlottingTimer(100);
+
     mvlDialog = new QDialog(this);
     volWidget = new Ui::TSVolSignalWidget();
     volWidget->setupUi(mvlDialog);
@@ -582,37 +363,38 @@ void TSController::stopExam()
     //qDebug()<<"TSController::stopExam";
     if(recordingStarted)
     {
-        plotingTimer.stop();
+        m_plotter.stopPlottingTimer();
+        //plotingTimer.stop();
 
         m_adc_reader.stopACQ();
 
         qDebug()<<"Stop exam";
         QSqlRecord record = examinationsModel->record();
-        int n = curveBuffer->end();
+        int n = curveBuffer.end();
         QString val;
         int i;
-        int *mass = curveBuffer->volume();
+        int *mass = curveBuffer.volume();
         for(i=0;i<n;i++){
             val.append(QString::number(mass[i])+";");
         }
         record.setValue("volume",val);
         val.clear();
-        mass = curveBuffer->tempIn();
+        mass = curveBuffer.tempIn();
         for(i=0;i<n;i++)
         {
             val.append(QString::number(mass[i])+";");
         }
         record.setValue("tempIn",val);
         val.clear();
-        mass = curveBuffer->tempOut();
+        mass = curveBuffer.tempOut();
         for(i=0;i<n;i++)
         {
             val.append(QString::number(mass[i])+";");
         }
         record.setValue("tempOut",val);
-        record.setValue("volZero",0);//curveBuffer->volumeColibration());
-        record.setValue("volIn",curveBuffer->volumeConverts().at(1));
-        record.setValue("volOut",curveBuffer->volumeConverts().at(0));
+        record.setValue("volZero",0);//curveBuffer.volumeColibration());
+        record.setValue("volIn",curveBuffer.volumeConverts().at(1));
+        record.setValue("volOut",curveBuffer.volumeConverts().at(0));
         record.setValue("date",QDate::currentDate().toString("yyyy-MM-dd"));
         record.setValue("time",QTime::currentTime().toString("hh:mm"));
         if(!examinationsModel->insertRecord(-1,record))
@@ -658,7 +440,7 @@ void TSController::openPatientProfile(QModelIndex ind)
 {
     //qDebug()<<"TSController::openPatientProfile";
     QSqlRecord record;
-    if(ind.row()==-1&&ind.column()==-1)
+    if( ind.row() == -1 && ind.column() == -1 )
     {
         record = patientsModel->record(patientsModel->rowCount()-1);
     }
@@ -685,11 +467,11 @@ void TSController::openPatientProfile(QModelIndex ind)
 }
 
 void TSController::showAverageData(int avgTempIn, int avgTempOut, int avgDO, int avgCHD){
-    ui->volumeInfoLabel->setText(tr("ДО=")+QString::number(curveBuffer->volToLtr(avgDO),'g',2)+tr(" Л\nЧД=")+QString::number(avgCHD));
-    ui->tinInfoLabel->setText("Tin="+QString::number(curveBuffer->tempInToDeg(avgTempIn),'g',2)+" 'C");
-    ui->toutInfolabel->setText("Tout="+QString::number(curveBuffer->tempInToDeg(avgTempOut),'g',2)+" 'C");
-    int mvl = (curveBuffer->volToLtr(avgDO)*avgCHD)*100/patientsModel->record(0).value("mvl").toDouble();
-    if(recordingStarted&&curveBuffer->end()>10)
+    ui->volumeInfoLabel->setText(tr("ДО=")+QString::number(curveBuffer.volToLtr(avgDO),'g',2)+tr(" Л\nЧД=")+QString::number(avgCHD));
+    ui->tinInfoLabel->setText("Tin="+QString::number(curveBuffer.tempInToDeg(avgTempIn),'g',2)+" 'C");
+    ui->toutInfolabel->setText("Tout="+QString::number(curveBuffer.tempInToDeg(avgTempOut),'g',2)+" 'C");
+    int mvl = (curveBuffer.volToLtr(avgDO)*avgCHD)*100/patientsModel->record(0).value("mvl").toDouble();
+    if(recordingStarted&&curveBuffer.end()>10)
         volWidget->MVL->setText(QString::number(mvl)+"%");
 }
 
@@ -710,30 +492,25 @@ void TSController::completePatientId()
 void TSController::scrollGraphics(int value)
 {
     // qDebug()<<"TSController::scrollGraphics";
-    if(curveBuffer->end() != 0)
-        curveBuffer->setEnd(W-35+value*horizontalStep*10);
-    plotNow();
+    if(curveBuffer.end() != 0)
+        curveBuffer.setEnd(m_plotter.getW()-35+value*m_plotter.getHorizontalStep()*10);
+    m_plotter.plotNow();
 }
 
 void TSController::createNewExam(){
-    //TSUsbDataReader usbdatareader;
-   // if ( usbdatareader.isReady() == true ){
     if ( m_adc_reader.isReady() == true ){
-        if ( pcVolume.isActive() )
-            pcVolume.end();
         qDebug()<<"TSController::createNewExam";
         ui->mainBox->setCurrentIndex(4);
-        cH = ui->calibrateVolumeAnimation->height();
-        cW = ui->calibrateVolumeAnimation->width();
-        qDebug()<<"height: "<<cH<<" width: "<<cW;
-        bcVolume = QPixmap(cW,cH);
-        qDebug()<<"height: "<<bcVolume.height()<<" width: "<<bcVolume.width();
-        pcVolume.begin(&bcVolume);
-        curveBuffer->clean();
-        curveBuffer->setEnd(0);
-        curveBuffer->setLenght(0);
-        maxcVol = 0;
-        plotCalibration();
+        m_plotter.setCH(ui->calibrateVolumeAnimation->height());
+        m_plotter.setCW(ui->calibrateVolumeAnimation->width());
+        m_plotter.resetPlotting();
+        curveBuffer.clean();
+        curveBuffer.setEnd(0);
+        curveBuffer.setLenght(0);
+        m_plotter.setMaxcVol(0);
+        //maxcVol = 0;
+        m_plotter.plotCalibration();
+        //plotCalibration();
     }else{
         QMessageBox msgBox;
         msgBox.setWindowTitle(tr("Внимание"));
@@ -767,29 +544,33 @@ void TSController::openExam(QModelIndex ind)
     {
         tempout[i] = list.at(i).toInt();
     }
-    curveBuffer->setValues(volume,tempin,tempout,list.count());
-    curveBuffer->setVolumeColibration(record.value("volZero").toInt(),false);
+    curveBuffer.setValues(volume,tempin,tempout,list.count());
+    curveBuffer.setVolumeColibration(record.value("volZero").toInt(),false);
 
     qDebug()<<"setVolumeConverts openExam "<<record.value("volOut").toInt()<<" "<<record.value("volIn").toInt();
-    /* curveBuffer->setVolumeConverts(record.value("volOut").toInt(),
+    /* curveBuffer.setVolumeConverts(record.value("volOut").toInt(),
                                    record.value("volIn").toInt());*///перепутано
-    curveBuffer->setVolumeConverts(record.value("volIn").toInt(), record.value("volOut").toInt());
+    curveBuffer.setVolumeConverts(record.value("volIn").toInt(), record.value("volOut").toInt());
     ui->startExam->setEnabled(false);
     ui->stopExam->setEnabled(false);
     ui->mainBox->setCurrentIndex(5);
     ui->horizontalScrollBar->setMaximum((list.count()-ui->gVolume->width())/10);
     ui->horizontalScrollBar->setValue(0);
     ui->horizontalScrollBar->setEnabled(true);
-    initPaintDevices();
-    curveBuffer->setEnd(W-35);
-    tempInScaleRate = 1.0/5000;
-    tempOutScaleRate = 1.0/5000;
-    volumeScaleRate = 4.0/5000;
-    horizontalStep = 1.0;
+    m_plotter.initPaintDevices();
+    // initPaintDevices();
+    curveBuffer.setEnd(m_plotter.getW()-35);
+
+    m_plotter.setTempInScaleRate(1.0/5000);
+    m_plotter.setTempOutScaleRate(1.0/5000);
+    m_plotter.setVolumeScaleRate(4.0/5000);
+    m_plotter.setHorizontalStep(1.0);
+
     ui->managmentSpaser->setGeometry(QRect(0,0,350,2));
     ui->managmentBox->setVisible(true);
     ui->managmentBox->setEnabled(true);
-    plotNow();
+    m_plotter.plotNow();
+    //plotNow();
     processDataParams();
     qDebug()<<"TableWidget: "<<ui->resultsTable->width()<<" "<<ui->resultsTable->height();
     qDebug()<<"Button: "<<ui->startExam->width()<<" "<<ui->startExam->height();
@@ -798,108 +579,10 @@ void TSController::openExam(QModelIndex ind)
 void TSController::resizeEvent(QResizeEvent *evt)
 {
     //qDebug()<<"TSController::resizeEvent";
-    initPaintDevices();
-    plotNow();
-
+    m_plotter.initPaintDevices();
+    m_plotter.plotNow();
 }
 
-void TSController::scaleTempIn(int value)
-{
-    //qDebug()<<"TSController::scaleTempIn";
-    if(value>0)
-    {
-        ui->tempInScroll->setMinimum((-1)*scaleScroll[value-1]);
-        ui->tempInScroll->setMaximum(scaleScroll[value-1]);
-        ui->tempInScroll->setValue(0);
-    }
-    else
-    {
-        ui->tempInScroll->setMinimum(0);
-        ui->tempInScroll->setMaximum(0);
-        ui->tempInScroll->setValue(0);
-    }
-    value*=2;
-    if(value<0)
-    {
-        tempInScaleRate = (-1.0)/value/5000;
-    }
-    if(value == 0)
-    {
-        tempInScaleRate = 1.0/5000;
-    }
-    if(value>0)
-    {
-        tempInScaleRate = (float)value/5000;
-    }
-    plotNow();
-}
-
-void TSController::scaleTempOut(int value)
-{
-    //qDebug()<<"TSController::scaleTempOut";
-    if(value>0)
-    {
-        ui->tempOutScroll->setMinimum((-1)*scaleScroll[value-1]);
-        ui->tempOutScroll->setMaximum(scaleScroll[value-1]);
-        ui->tempOutScroll->setValue(0);
-    }
-    else
-    {
-        ui->tempOutScroll->setMinimum(0);
-        ui->tempOutScroll->setMaximum(0);
-        ui->tempOutScroll->setValue(0);
-    }
-    value*=2;
-    if(value<0)
-    {
-        tempOutScaleRate = (-1.0)/value/5000;
-    }
-    if(value == 0)
-    {
-        tempOutScaleRate = 1.0/5000;
-    }
-    if(value>0)
-    {
-        tempOutScaleRate = (float)value/5000;
-    }
-    plotNow();
-}
-
-void TSController::scaleVolume(int value)
-{
-    // qDebug()<<"TSController::scaleVolume";
-    value*=2;
-    if(value<0)
-    {
-        volumeScaleRate = (-4.0)/value/5000;
-    }
-    if(value == 0)
-    {
-        volumeScaleRate = 4.0/5000;
-    }
-    if(value>0)
-    {
-        volumeScaleRate = (float)value*4/5000;
-    }
-    plotNow();
-}
-
-void TSController::scaleForHorizontal(int value)
-{
-    //qDebug()<<"TSController::scaleForHorizontal";
-    value*=2;
-    if(value!=0)
-    {
-        horizontalStep = (-1.0)/value;
-        curveBuffer->setEnd(W-35);
-    }
-    else
-    {
-        horizontalStep = 1.0;
-        curveBuffer->setEnd(W-35);
-    }
-    plotNow();
-}
 
 void TSController::changeScrollBarAfterScaling(int before, int after)
 {
@@ -917,13 +600,6 @@ void TSController::changeScrollBarAfterScaling(int before, int after)
         ui->horizontalScrollBar->setMaximum(ui->horizontalScrollBar->maximum()*2);
         ui->horizontalScrollBar->setValue(val*2);
     }
-}
-
-void TSController::changeTempInScrollValue(int value)
-{
-    ///qDebug()<<"TSController::changeTempInScrollValue";
-    tempInZerPos = (-1)*value;
-    plotNow();
 }
 
 bool TSController::eventFilter(QObject *obj, QEvent *e)
@@ -957,7 +633,7 @@ bool TSController::eventFilter(QObject *obj, QEvent *e)
     if(obj == ui->backCallibrateButton && evt->button()==Qt::LeftButton)
     {
         ui->mainBox->setCurrentIndex(3);
-        curveBuffer->clean();
+        curveBuffer.clean();
     }
     if(obj == ui->backExamButton && evt->button()==Qt::LeftButton)
     {
@@ -972,9 +648,9 @@ bool TSController::eventFilter(QObject *obj, QEvent *e)
             ui->managmentSpaser->setGeometry(QRect(0,0,2,2));
             ui->managmentBox->setVisible(false);
         }
-        curveBuffer->clean();
+        curveBuffer.clean();
     }
-    //curveBuffer->clean();
+    //curveBuffer.clean();
     return QObject::eventFilter(obj,e);
 }
 
@@ -1013,7 +689,8 @@ QTableWidgetItem* TSController::getQTableWidgetItem(QVariant text){
 void TSController::breakExam()
 {
     //    qDebug()<<"TSController::breakExam";
-    plotingTimer.stop();
+    m_plotter.stopPlottingTimer();
+    //plotingTimer.stop();
     m_adc_reader.stopACQ();
 }
 
@@ -1030,11 +707,11 @@ void TSController::processDataParams(){
     float AvgExpirationSpeed=0, MaxExpirationSpeed=0, AvgExpirationTime=0, AvgInspirationTime=0,
             AvgRoundTime=0, AvgTempIn=0, AvgTempOut=0, AvgTempInMinusAvgTempOut=0,  BreathingVolume=0, MVL=0, MinuteVentilation=0;
     float InspirationFrequency=0;
-    int *vo = curveBuffer->volume();
-    int *ti = curveBuffer->tempIn();
-    int *to = curveBuffer->tempOut();
+    int *vo = curveBuffer.volume();
+    int *ti = curveBuffer.tempIn();
+    int *to = curveBuffer.tempOut();
     QVector<int> volume,temp_in,temp_out;
-    for(int i=0;i<curveBuffer->getLenght();i++){
+    for(int i=0;i<curveBuffer.getLenght();i++){
         volume.push_back(vo[i]);
         temp_in.push_back(ti[i]);
         temp_out.push_back(to[i]);
@@ -1043,11 +720,11 @@ void TSController::processDataParams(){
 
     AvgExpirationSpeed = vs->getAverageExpirationSpeed();
     qtw->setItem(1,0,getQTableWidgetItem(tr("Средняя скорость выдоха(л/с)")));
-    qtw->setItem(1,1,getQTableWidgetItem(QString::number(fabs(curveBuffer->volToLtr((int)AvgExpirationSpeed)))));
+    qtw->setItem(1,1,getQTableWidgetItem(QString::number(fabs(curveBuffer.volToLtr((int)AvgExpirationSpeed)))));
 
     MaxExpirationSpeed = vs->getMaxExpirationSpeed();
     qtw->setItem(2,0,getQTableWidgetItem(tr("Максимальная скорость выдоха(л/с)")));
-    qtw->setItem(2,1,getQTableWidgetItem(QString::number(fabs(curveBuffer->volToLtr((int)MaxExpirationSpeed)))));
+    qtw->setItem(2,1,getQTableWidgetItem(QString::number(fabs(curveBuffer.volToLtr((int)MaxExpirationSpeed)))));
 
     AvgExpirationTime = vs->getAverageExpirationTime();
     qtw->setItem(3,0,getQTableWidgetItem(tr("Среднее время выдоха(с)")));
@@ -1067,30 +744,30 @@ void TSController::processDataParams(){
 
     MinuteVentilation = vs->getMinuteVentilation();
     qtw->setItem(8,0,getQTableWidgetItem(tr("Минутная вентиляция легких(л)")));
-    qtw->setItem(8,1,getQTableWidgetItem(QString::number(curveBuffer->volToLtr(MinuteVentilation))));
+    qtw->setItem(8,1,getQTableWidgetItem(QString::number(curveBuffer.volToLtr(MinuteVentilation))));
 
     BreathingVolume = vs->getAverageInspiratonVentilation();
     qtw->setItem(7,0,getQTableWidgetItem(tr("Дыхательный объем(л)")));
-    qtw->setItem(7,1,getQTableWidgetItem(QString::number(fabs(curveBuffer->volToLtr((int)BreathingVolume)))));
+    qtw->setItem(7,1,getQTableWidgetItem(QString::number(fabs(curveBuffer.volToLtr((int)BreathingVolume)))));
 
     MVL = vs->getTotalVentilation();
     qtw->setItem(9,0,getQTableWidgetItem(tr("Суммарная вентиляция легких(л)")));
-    qtw->setItem(9,1,getQTableWidgetItem(QString::number(fabs(curveBuffer->volToLtr((int)MVL)))));
+    qtw->setItem(9,1,getQTableWidgetItem(QString::number(fabs(curveBuffer.volToLtr((int)MVL)))));
 
     //ga->clear();
 
     AvgTempIn = vs->getAverageInspirationTempetature();
     qtw->setItem(10,0,getQTableWidgetItem(tr("Средняя температура вдоха( 'C)")));
-    qtw->setItem(10,1,getQTableWidgetItem(QString::number(curveBuffer->tempInToDeg(AvgTempIn))));
+    qtw->setItem(10,1,getQTableWidgetItem(QString::number(curveBuffer.tempInToDeg(AvgTempIn))));
     //gai->clear();
 
     AvgTempOut = vs->getAverageExpirationTempetature();
     qtw->setItem(11,0,getQTableWidgetItem(tr("Средняя температура выдоха( 'C)")));
-    qtw->setItem(11,1,getQTableWidgetItem(QString::number(curveBuffer->tempOutToDeg(AvgTempOut))));
+    qtw->setItem(11,1,getQTableWidgetItem(QString::number(curveBuffer.tempOutToDeg(AvgTempOut))));
 
     AvgTempInMinusAvgTempOut = AvgTempOut-AvgTempIn;
     qtw->setItem(12,0,getQTableWidgetItem(tr("Средняя Твдоха-Средняя Твыдоха( 'C)")));
-    qtw->setItem(12,1,getQTableWidgetItem(curveBuffer->tempOutToDeg(AvgTempOut)-curveBuffer->tempInToDeg(AvgTempIn)));
+    qtw->setItem(12,1,getQTableWidgetItem(curveBuffer.tempOutToDeg(AvgTempOut)-curveBuffer.tempInToDeg(AvgTempIn)));
 
     qtw->removeRow(0);
     qtw->show();
@@ -1125,7 +802,7 @@ void TSController::printReport()
     QPrintDialog *dialog = new QPrintDialog(&printer, this);
     dialog->setWindowTitle(tr("Предварительный просмотр"));
 
-    int endIndex=curveBuffer->lenght;
+    int endIndex=curveBuffer.lenght;
 
     float listh=printer.widthMM()*printer.resolution()/25.4-60;
     float listw=printer.heightMM()*printer.resolution()/25.4-60;
@@ -1144,9 +821,9 @@ void TSController::printReport()
     pf.resultsTable->verticalHeader()->setVisible(false);
     pf.resultsTable->setHorizontalHeaderLabels(QString(tr("Параметр; Значение")).split(";"));
     pf.resultsTable->horizontalHeader()->setSectionResizeMode(QHeaderView::ResizeToContents);
-    int i=0,j=0;
-    for(i=0;i<ui->resultsTable->rowCount();i++){
-        for(j=0;j<2;j++){
+    int i=0, j=0;
+    for(i=0; i < ui->resultsTable->rowCount(); i++){
+        for(j=0; j < 2; j++){
             pf.resultsTable->setItem(i,j,getQTableWidgetItem(ui->resultsTable->item(i,j)->text()));
         }
     }
@@ -1198,29 +875,32 @@ void TSController::printReport()
     }
     prVolume.setPen(QColor(0,0,0));
     prTempIn.setPen(QColor(0,0,0));
-    prTempOut.setPen(curveBuffer->toutColor);
+    prTempOut.setPen(curveBuffer.toutColor);
     prVolume.setPen(QColor(255,0,0));
-    int* tinInt = curveBuffer->getTempInInterval();
-    int* toutInt = curveBuffer->getTempOutInterval();
-    int* volInt = curveBuffer->getVolumeInterval();
+    int* tinInt = curveBuffer.getTempInInterval();
+    int* toutInt = curveBuffer.getTempOutInterval();
+    int* volInt = curveBuffer.getVolumeInterval();
     float tempInK = 1;
     float tempOutK = 1;
     float tempInZ = h;
     float tempOutZ = h;
-    tempInAdaptive = (float)myH/(tinInt[1]-tinInt[0]);
-    tempOutAdaptive = (float)myH/(toutInt[1]-toutInt[0]);
-    volumeAdaptive = (float)myH/(volInt[1]-volInt[0]);
-    tempInZ = h + ceil((float)(tinInt[1]+tinInt[0])*tempInAdaptive*tempInK/2);
-    tempOutZ = h + ceil((float)(toutInt[1]+toutInt[0])*tempOutAdaptive*tempOutK/2);
+    double tempInAdaptive = (float)myH/(tinInt[1]-tinInt[0]);
+    double tempOutAdaptive = (float)myH/(toutInt[1]-toutInt[0]);
+    double printerVolumeAdaptive = (float)myH/(volInt[1]-volInt[0]);
+    //volumeAdaptive = (float)myH/(volInt[1]-volInt[0]);
+    tempInZ = h + ceil((float)(tinInt[1]+tinInt[0])*m_plotter.getTempInAdaptive()*tempInK/2);
+    tempOutZ = h + ceil((float)(toutInt[1]+toutInt[0])*m_plotter.getTempOutAdaptive()*tempOutK/2);
     float volumeK =1;
-
+    int *volume = curveBuffer.volume();
+    int *tempIn = curveBuffer.tempIn();
+    int *tempOut = curveBuffer.tempOut();
     i=0;
-    int k=ceil((float)curveBuffer->lenght/pf.gTempIn->width());
+    int k=ceil((float)curveBuffer.lenght/pf.gTempIn->width());
     for(j=0;j<myW-35;j+=1)
     {
         if(i>=k*endIndex)break;
         prVolume.drawLine(
-                    j,h-volumeK*volumeAdaptive*volume[i],j+1,h-volumeK*volumeAdaptive*volume[i+k]
+                    j,h-volumeK*printerVolumeAdaptive*volume[i],j+1,h-volumeK*printerVolumeAdaptive*volume[i+k]
                 );
         prTempIn.drawLine(j,tempInZ-tempInK*tempInAdaptive*tempIn[i]
                           ,j+1,tempInZ-tempInK*tempInAdaptive*tempIn[i+k]);

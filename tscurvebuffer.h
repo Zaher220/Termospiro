@@ -70,7 +70,7 @@ private:
     int ts_tempIn[18000];
     int ts_tempOut[18000];
     int ts_integral[18000];
-    int ts_end;
+    int ts_end = -1;
     int ts_volumeColibration;
     int ts_screenLimit;
     int ts_startIndex;

@@ -19,10 +19,11 @@ public:
     std::vector<std::vector<short>> getACQData();
     int getSamples_number() const;
     void setSamples_number(int samples_number);
-//public slots:
+    bool isReady();
+public slots:
     void startACQ();
     void stopACQ();
-    bool isReady();
+
 signals:
     void sendACQData(std::vector<std::vector<short>>);
     void done();

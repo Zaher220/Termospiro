@@ -64,7 +64,7 @@
          <number>0</number>
         </property>
         <property name="currentIndex">
-         <number>3</number>
+         <number>1</number>
         </property>
         <widget class="QWidget" name="start">
          <property name="styleSheet">
