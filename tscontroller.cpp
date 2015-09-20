@@ -69,7 +69,7 @@ TSController::TSController(QWidget *parent):QMainWindow(parent),ui(new Ui::TSVie
         msgBox.setWindowTitle(tr("Ошибка"));
         QString error = QString("Произошла ошибка.\nОбратитесь к разработчикам.\nКод: 00001.\nПрограмма будет завершена. ")+patientsConnection.lastError().text().toStdString().c_str();
 
-		msgBox.setText(error);
+        msgBox.setText(error);
         msgBox.exec();
         QApplication::exit(0);
     }
@@ -110,8 +110,16 @@ TSController::TSController(QWidget *parent):QMainWindow(parent),ui(new Ui::TSVie
     ui->backPatientListButton->installEventFilter(this);
     ui->backCallibrateButton->installEventFilter(this);
     ui->backExamButton->installEventFilter(this);
-    _reader=NULL;
-    _thread=NULL;
+    /*_reader=NULL;
+    _thread=NULL;*/
+
+    connect(&m_adc_reader, SIGNAL(sendACQData(std::vector<std::vector<short> >)), &m_raw_data_parser, SLOT(setACQData(std::vector<std::vector<short> >)));
+    connect(&m_raw_data_parser, SIGNAL(sendNewData(QVector<double>,QVector<double>,QVector<double>)), curveBuffer, SLOT(appendData(QVector<double>,QVector<double>,QVector<double>)));
+
+
+
+    //connect(reader,SIGNAL(done()),&d,SLOT(accept()));
+    // connect(reader,SIGNAL(changeProgress(int)),dui.progressBar,SLOT(setValue(int)));
     //this->processDataParams();
 }
 
@@ -320,12 +328,18 @@ void TSController::calibrateVolume(){
     //d.setWindowFlags(Qt::SubWindow);
     dui.setupUi(&d);
 
+    connect(&m_adc_reader, SIGNAL(done()), &d, SLOT(accept()));
+    connect(&m_adc_reader, SIGNAL(changeProgress(int)), dui.progressBar, SLOT(setValue(int)));
+
     //controller->setWindowFlags(Qt::WindowTitleHint | Qt::WindowMinimizeButtonHint|Qt::SubWindow);
     d.setWindowTitle(tr("Предупреждение"));
     dui.information->setText(tr("Идет подготовка..."));
     dui.acceptButton->setVisible(false);
 
-    TSUsbDataReader *reader = new TSUsbDataReader();
+    m_adc_reader.setSamples_number(1250);
+    m_adc_reader.startACQ();
+
+    /*TSUsbDataReader *reader = new TSUsbDataReader();
     QThread *thread = new QThread();
     thread->setPriority(QThread::TimeCriticalPriority);
     connect(thread,SIGNAL(started()),reader,SLOT(doWork()));
@@ -336,8 +350,7 @@ void TSController::calibrateVolume(){
     reader->setBuffer(curveBuffer);
     reader->setReadingType(ReadForVolZer);
     reader->moveToThread(thread);
-    thread->start();
-
+    thread->start();*/
 
     /*connect(readerThread,SIGNAL(done()),&d,SLOT(accept()));
     connect(readerThread,SIGNAL(changeProgress(int)),dui.progressBar,SLOT(setValue(int)));
@@ -349,7 +362,9 @@ void TSController::calibrateVolume(){
         dui.progressBar->setVisible(false);
         dui.acceptButton->setVisible(true);
     }
-    reader->stopRead();
+    m_adc_reader.stopACQ();
+
+    /*reader->stopRead();
     Sleep(200);
     thread->quit();
     Sleep(200);
@@ -358,13 +373,14 @@ void TSController::calibrateVolume(){
     delete thread;
     thread = NULL;
     delete reader;
-    reader=NULL;
+    reader=NULL;*/
 
     d.exec();
     connect(&cPlotingTimer,SIGNAL(timeout()),this,SLOT(plotCalibration()));
 
-
-    _reader = new TSUsbDataReader();
+    m_adc_reader.startACQ();
+    //connect(&m_adc_reader, SIGNAL())
+   /* _reader = new TSUsbDataReader();
     _thread = new QThread();
     _thread->setPriority(QThread::TimeCriticalPriority);
     connect(_thread,SIGNAL(started()),_reader,SLOT(doWork()));
@@ -375,7 +391,7 @@ void TSController::calibrateVolume(){
     _reader->setBuffer(curveBuffer);
     _reader->setReadingType(ReadForVolVal);
     _reader->moveToThread(_thread);
-    _thread->start();
+    _thread->start();*/
     cPlotingTimer.start(100);
 }
 
@@ -564,7 +580,10 @@ void TSController::plotCalibration(){
 
         qDebug()<<"reading is finished";
         //readerThread->stopRead();
-        _reader->stopRead();
+
+        m_adc_reader.stopACQ();
+
+       /* _reader->stopRead();
         Sleep(200);
         _thread->quit();
         Sleep(200);
@@ -572,7 +591,7 @@ void TSController::plotCalibration(){
         delete _thread;
         _thread = NULL;
         delete _reader;
-        _reader=NULL;
+        _reader=NULL;*/
 
         curveBuffer->clean();
         settings.sync();
@@ -609,7 +628,10 @@ void TSController::startExam()
     ui->tinInfoLabel->setVisible(true);
     ui->toutInfolabel->setVisible(true);
     curveBuffer->clean();
-    _reader = new TSUsbDataReader();
+
+m_adc_reader.startACQ();
+
+   /* _reader = new TSUsbDataReader();
     _thread = new QThread();
     _thread->setPriority(QThread::Priority::TimeCriticalPriority);
     connect(_thread,SIGNAL(started()),_reader,SLOT(doWork()));
@@ -620,7 +642,8 @@ void TSController::startExam()
     _reader->setReadingType(ReadAll);
     _reader->moveToThread(_thread);
 
-    _thread->start();
+    _thread->start();*/
+
     myTimer.start();
     recordingStarted = true;
     tempInScaleRate = 1.0/5000;
@@ -647,7 +670,10 @@ void TSController::stopExam()
         plotingTimer.stop();
         //readerThread->stopRead();
         int elap = myTimer.elapsed();
-        _reader->stopRead();
+
+        m_adc_reader.stopACQ();
+
+      /*  _reader->stopRead();
         Sleep(200);
         _thread->quit();
         Sleep(200);
@@ -655,7 +681,7 @@ void TSController::stopExam()
         delete _thread;
         _thread = NULL;
         delete _reader;
-        _reader=NULL;
+        _reader=NULL;*/
 
 
         qDebug()<<"Stop exam";
@@ -664,8 +690,7 @@ void TSController::stopExam()
         QString val;
         int i;
         int *mass = curveBuffer->volume();
-        for(i=0;i<n;i++)
-        {
+        for(i=0;i<n;i++){
             val.append(QString::number(mass[i])+";");
         }
         record.setValue("volume",val);
@@ -1108,8 +1133,12 @@ void TSController::breakExam()
 {
     //    qDebug()<<"TSController::breakExam";
 
+
     plotingTimer.stop();
-    _reader->stopRead();
+    m_adc_reader.stopACQ();
+
+
+    /*_reader->stopRead();
     Sleep(200);
     _thread->quit();
     Sleep(200);
@@ -1117,7 +1146,7 @@ void TSController::breakExam()
     delete _thread;
     _thread = NULL;
     delete _reader;
-    _reader=NULL;
+    _reader=NULL;*/
     //readerThread->stopRead();
 }
 
@@ -1348,16 +1377,17 @@ void TSController::printReport()
     }
 }
 
-float TSController::fabs(float a){
+/*float TSController::fabs(float a){
     //    qDebug()<<"TSController::fabs";
     if(a<0)
         return -a;
     else
         return a;
-}
+}*/
 
 void TSController::closeEvent(QCloseEvent *e){
-    if (_thread!=NULL){
+    m_adc_reader.stopACQ();
+    /*if (_thread!=NULL){
         if (_thread->isRunning()){
             qDebug()<<"WTF";
             _reader->stopRead();
@@ -1370,7 +1400,7 @@ void TSController::closeEvent(QCloseEvent *e){
             delete _reader;
             _reader=NULL;
         }
-    }
+    }*/
     e->accept();
     //delete readerThread;
 }

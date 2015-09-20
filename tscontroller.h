@@ -15,7 +15,8 @@
 #include "tsusbdatareader.h"
 #include "volumesolver.h"
 #include <QTime>
-#include "adcdatareader.h"
+#include "ADCDataReader.h"
+#include "rawdataparser.h"
 namespace Ui {
     class TSView;
     class TSProgressDialog;
@@ -35,7 +36,7 @@ public:
     ~TSController();
 
 public slots:
-    float fabs(float a);
+   // float fabs(float a);
     void incCurrentIndex();
     void decCurrentIndex();
     void editPatientProfile();
@@ -75,8 +76,11 @@ protected:
     void closeEvent(QCloseEvent *e);
     void openPrivateDB(QSqlRecord record);
 private:
-
-    TSUsbDataReader *_reader;
+    ADCDataReader m_adc_reader;
+    RawDataParser m_raw_data_parser;
+    //Тред для чтения
+    //TSReaderThread *readerThread;
+   // TSUsbDataReader *_reader;
     QThread *_thread;
     QWidget wpf;
     QDialog *mvlDialog;
@@ -123,8 +127,7 @@ private:
     float tempOutAdaptive;
     float volumeAdaptive;
     int maxcVol;
-    //Тред для чтения
-    //TSReaderThread *readerThread;
+
     //модели
     TSPatients *patientsModel;
     TSExaminations *examinationsModel;
@@ -132,7 +135,7 @@ private:
     QSqlDatabase examinationsConnection;
     bool isInitialized;
     QTime myTimer;
-    ADCDataReader *m_data_reader;
+
 };
 
 #endif // TSVIEW_H

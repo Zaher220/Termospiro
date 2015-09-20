@@ -33,7 +33,8 @@ SOURCES += main.cpp\
     models/TSExaminations.cpp \
     models/TSPatients.cpp \
     tools/tsvalidationtools.cpp \
-    adcdatareader.cpp
+    ADCDataReader.cpp \
+    rawdataparser.cpp
 
 HEADERS  += \
     bdgod.h \
@@ -56,7 +57,8 @@ HEADERS  += \
     models/TSExaminations.h \
     models/TSPatients.h \
     tools/tsvalidationtools.h \
-    adcdatareader.h
+    ADCDataReader.h \
+    rawdataparser.h
 
 FORMS    += \
     colibrateDialog.ui \
@@ -79,3 +81,4 @@ win32: LIBS += -L$$PWD/lib/ -lRtusbapi
 
 INCLUDEPATH += $$PWD/
 DEPENDPATH += $$PWD/
+

@@ -36,7 +36,7 @@ public:
     int getMax();
     int getMin();
 private:
-    FILE *out;
+    FILE *out = nullptr;
     int fabs(int a);
     QVector<extremum> *ts_extremums;
     QVector<extremum> *ts_vol_exts;
