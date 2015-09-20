@@ -113,6 +113,7 @@ TSController::TSController(QWidget *parent):QMainWindow(parent),ui(new Ui::TSVie
     ui->resultsButton->setEnabled(true);
     ui->backPatientProfileButton->installEventFilter(this);
     ui->backPatientListButton->installEventFilter(this);
+    ui->openButton->installEventFilter(this);
     ui->backCallibrateButton->installEventFilter(this);
     ui->backExamButton->installEventFilter(this);
 
@@ -316,13 +317,10 @@ void TSController::rejectColibration()
 
     m_plotter.initPaintDevices();
     m_plotter.plotNow();
-    //initPaintDevices();
-    //plotNow();
 
     ui->managmentSpaser->setGeometry(QRect(0,0,350,2));
     ui->managmentBox->setVisible(true);
     ui->managmentBox->setEnabled(true);
-
 }
 
 void TSController::startExam()
@@ -364,7 +362,6 @@ void TSController::stopExam()
     if(recordingStarted)
     {
         m_plotter.stopPlottingTimer();
-        //plotingTimer.stop();
 
         m_adc_reader.stopACQ();
 
@@ -406,7 +403,6 @@ void TSController::stopExam()
     ui->horizontalScrollBar->setEnabled(true);
     mvlDialog->close();
     recordingStarted = false;
-
 }
 
 void TSController::openPatientList()
@@ -440,12 +436,10 @@ void TSController::openPatientProfile(QModelIndex ind)
 {
     //qDebug()<<"TSController::openPatientProfile";
     QSqlRecord record;
-    if( ind.row() == -1 && ind.column() == -1 )
-    {
+    if( ind.row() == -1 && ind.column() == -1 ){
         record = patientsModel->record(patientsModel->rowCount()-1);
     }
-    else
-    {
+    else{
         record = patientsModel->record(ind.row());
     }
 
@@ -457,8 +451,7 @@ void TSController::openPatientProfile(QModelIndex ind)
     examinationsModel = new TSExaminations(examinationsConnection);
     ui->examsTableView->setModel(examinationsModel);
     ui->examsTableView->setColumnHidden(0,true);
-    for(int i=3;i<10;i++)
-    {
+    for(int i=3;i<10;i++){
         ui->examsTableView->setColumnHidden(i,true);
     }
     ui->examsTableView->setSelectionBehavior(QAbstractItemView::SelectRows);
@@ -508,9 +501,7 @@ void TSController::createNewExam(){
         curveBuffer.setEnd(0);
         curveBuffer.setLenght(0);
         m_plotter.setMaxcVol(0);
-        //maxcVol = 0;
         m_plotter.plotCalibration();
-        //plotCalibration();
     }else{
         QMessageBox msgBox;
         msgBox.setWindowTitle(tr("Внимание"));
@@ -554,11 +545,11 @@ void TSController::openExam(QModelIndex ind)
     ui->startExam->setEnabled(false);
     ui->stopExam->setEnabled(false);
     ui->mainBox->setCurrentIndex(5);
+
     ui->horizontalScrollBar->setMaximum((list.count()-ui->gVolume->width())/10);
     ui->horizontalScrollBar->setValue(0);
     ui->horizontalScrollBar->setEnabled(true);
     m_plotter.initPaintDevices();
-    // initPaintDevices();
     curveBuffer.setEnd(m_plotter.getW()-35);
 
     m_plotter.setTempInScaleRate(1.0/5000);
@@ -569,8 +560,8 @@ void TSController::openExam(QModelIndex ind)
     ui->managmentSpaser->setGeometry(QRect(0,0,350,2));
     ui->managmentBox->setVisible(true);
     ui->managmentBox->setEnabled(true);
+
     m_plotter.plotNow();
-    //plotNow();
     processDataParams();
     qDebug()<<"TableWidget: "<<ui->resultsTable->width()<<" "<<ui->resultsTable->height();
     qDebug()<<"Button: "<<ui->startExam->width()<<" "<<ui->startExam->height();
@@ -623,11 +614,19 @@ bool TSController::eventFilter(QObject *obj, QEvent *e)
         }
         ui->horizontalScrollBar->setEnabled(false);
     }
-    if(obj == ui->backPatientListButton && evt->button()==Qt::LeftButton)
+    //if (obj == ui->backPatientListButton && evt->button()==Qt::LeftButton)
+    if (obj == ui->backPatientListButton && evt->button()==Qt::LeftButton)
     {
         ui->mainBox->setCurrentIndex(0);
-        patientsModel->setFilter("");
+       // patientsModel->setFilter("");
         patientsModel->select();
+        ui->horizontalScrollBar->setEnabled(false);
+    }
+    if (obj == ui->openButton && evt->button()==Qt::LeftButton)
+    {
+        ui->mainBox->setCurrentIndex(0);
+        /*patientsModel->setFilter("");
+        patientsModel->select();*/
         ui->horizontalScrollBar->setEnabled(false);
     }
     if(obj == ui->backCallibrateButton && evt->button()==Qt::LeftButton)
@@ -650,7 +649,6 @@ bool TSController::eventFilter(QObject *obj, QEvent *e)
         }
         curveBuffer.clean();
     }
-    //curveBuffer.clean();
     return QObject::eventFilter(obj,e);
 }
 
@@ -690,7 +688,6 @@ void TSController::breakExam()
 {
     //    qDebug()<<"TSController::breakExam";
     m_plotter.stopPlottingTimer();
-    //plotingTimer.stop();
     m_adc_reader.stopACQ();
 }
 
@@ -921,13 +918,15 @@ void TSController::printReport()
     }
 }
 
-
 void TSController::closeEvent(QCloseEvent *e){
     m_adc_reader.stopACQ();
     e->accept();
 }
 
-void TSController::on_examsTableView_doubleClicked(const QModelIndex &index)
+void TSController::on_openButton_clicked()
 {
-    emit openExam(index);
+    ui->mainBox->setCurrentIndex(0);
+    patientsModel->setFilter("");
+    patientsModel->select();
+    ui->horizontalScrollBar->setEnabled(false);
 }

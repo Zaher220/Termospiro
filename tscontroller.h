@@ -69,7 +69,8 @@ protected:
     void closeEvent(QCloseEvent *e);
     void openPrivateDB(QSqlRecord record);
 private slots:
-    void on_examsTableView_doubleClicked(const QModelIndex &index);
+    void on_openButton_clicked();
+
 private:
     ADCDataReader m_adc_reader;
     RawDataParser m_raw_data_parser;
@@ -81,7 +82,7 @@ private:
     QDialog *mvlDialog;
     QTableWidgetItem* getQTableWidgetItem(QVariant text);
     Ui::TSView *ui;
-    Ui::MainWindow *w;
+
     Ui::TSVolSignalWidget *volWidget;
     CurrentAction currentAction;
 
