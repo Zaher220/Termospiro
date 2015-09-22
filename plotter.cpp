@@ -75,19 +75,56 @@ void Plotter::plotNow()
     volumeAdaptive = (float)H/(volInt[1]-volInt[0]);
     tempInZ = h + ceil((float)(tinInt[1]+tinInt[0])*tempInAdaptive*tempInK/2);
     tempOutZ = h + ceil((float)(toutInt[1]+toutInt[0])*tempOutAdaptive*tempOutK/2);
-    float volumeK =1;// volumeScaleRate*h;
-    int j = 0, k = 1/horizontalStep;
+    float volumeK = 1;// volumeScaleRate*h;
+    int k = 1/horizontalStep;
     i=0;
-    for(j=0;j<W-35;j+=1)
-    {
-        if(i+startIndex>=k*endIndex)break;
-        pVolume.drawLine(j,h-volumeK*volumeAdaptive*volume[i+startIndex]
-                ,j+1,h-volumeK*volumeAdaptive*volume[i+startIndex+k]);
-        pTempIn.drawLine(j,tempInZ-tempInK*tempInAdaptive*tempIn[i+startIndex]
-                ,j+1,tempInZ-tempInK*tempInAdaptive*tempIn[i+startIndex+k]);
-        pTempOut.drawLine(j,tempOutZ-tempOutK*tempOutAdaptive*tempOut[i+startIndex]
-                ,j+1,tempOutZ-tempOutK*tempOutAdaptive*tempOut[i+startIndex+k]);
-        i+=k;
+    QVector<int> volume(curveBuffer->volumeVector());
+    QVector<int> tempin(curveBuffer->tempInVector());
+    QVector<int> tempout(curveBuffer->tempOutVector());
+    for(int j = 0; j < W - 35; j++){
+        if( i + startIndex >= k * endIndex )
+            break;
+        if( i + startIndex + k >= volume.size() )
+            break;
+        pVolume.drawLine(
+                    j,
+                    h - volumeK * volumeAdaptive * volume[i + startIndex],
+                j + 1,
+                h - volumeK * volumeAdaptive * volume[i + startIndex + k]
+                );
+        pTempIn.drawLine(
+                    j,
+                    tempInZ-tempInK*tempInAdaptive*tempin[i+startIndex],
+                j+1,
+                tempInZ-tempInK*tempInAdaptive*tempin[i+startIndex+k]
+                );
+        pTempOut.drawLine(
+                    j,
+                    tempOutZ-tempOutK*tempOutAdaptive*tempout[i+startIndex],
+                j+1,
+                tempOutZ-tempOutK*tempOutAdaptive*tempout[i+startIndex+k]
+                );
+
+
+//        pVolume.drawLine(
+//                    j,
+//                    h - volumeK * volumeAdaptive * m_volume[i + startIndex],
+//                j + 1,
+//                h - volumeK * volumeAdaptive * m_volume[i + startIndex + k]
+//                );
+//        pTempIn.drawLine(
+//                    j,
+//                    tempInZ-tempInK*tempInAdaptive*m_tempIn[i+startIndex],
+//                j+1,
+//                tempInZ-tempInK*tempInAdaptive*m_tempIn[i+startIndex+k]
+//                );
+//        pTempOut.drawLine(
+//                    j,
+//                    tempOutZ-tempOutK*tempOutAdaptive*m_tempOut[i+startIndex],
+//                j+1,
+//                tempOutZ-tempOutK*tempOutAdaptive*m_tempOut[i+startIndex+k]
+//                );
+        i += k;
     }
     ui->gVolume->setPixmap(bVolume);
     ui->gTempIn->setPixmap(bTempIn);
@@ -96,6 +133,7 @@ void Plotter::plotNow()
     {
         ui->horizontalScrollBar->setEnabled(false);
         ui->horizontalScrollBar->setMaximum(startIndex/10);
+       // ui->horizontalScrollBar->setMaximum(volume.size());
         ui->horizontalScrollBar->setValue(startIndex/10);
     }
 }
@@ -122,7 +160,7 @@ void Plotter::plotCalibration()
         }
         if(endIndex>50){
             for(int i=endIndex-50;i<endIndex;i++){
-                if(abs(volume[i])>maxcVol) maxcVol = abs(volume[i]);
+                if(abs(m_volume[i])>maxcVol) maxcVol = abs(m_volume[i]);
             }
         }
 
@@ -132,7 +170,7 @@ void Plotter::plotCalibration()
         int j=0;
         for(i=0;i<cW-1;i++){
             if(i>=endIndex||j+step>=endIndex)break;
-            pcVolume.drawLine(i,h-K*volume[j],i+1,h-K*volume[j+step]);
+            pcVolume.drawLine(i,h-K*m_volume[j],i+1,h-K*m_volume[j+step]);
             j+=step;
         }
         ui->calibrateVolumeAnimation->setPixmap(bcVolume);
@@ -144,7 +182,7 @@ void Plotter::plotCalibration()
         Ui::TSProgressDialog dui;
         dui.setupUi(&d);
         d.setWindowTitle(tr("Предупреждение"));
-        int *vol = curveBuffer->volume();
+        QVector<int> vol = curveBuffer->volumeVector();
         tsanalitics ta;
         qDebug()<<"curvebuff end "<<curveBuffer->end();
         for(int i=0;i<curveBuffer->end();i++){
@@ -484,4 +522,17 @@ void Plotter::initPaintDevices()
     startIndex = 0;
 }
 
+void Plotter::on_horizontalScrollBar_sliderPressed()
+{
+    qDebug()<<"Hellow";
+}
+bool Plotter::getRecordingStarted() const
+{
+    return recordingStarted;
+}
+
+void Plotter::setRecordingStarted(bool value)
+{
+    recordingStarted = value;
+}
 

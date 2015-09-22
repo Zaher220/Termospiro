@@ -81,7 +81,7 @@ private:
     QWidget wpf;
     QDialog *mvlDialog;
     QTableWidgetItem* getQTableWidgetItem(QVariant text);
-    Ui::TSView *ui;
+    Ui::TSView ui;
 
     Ui::TSVolSignalWidget *volWidget;
     CurrentAction currentAction;

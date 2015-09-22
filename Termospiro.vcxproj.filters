@@ -46,18 +46,18 @@
       <Extensions>cpp;c;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
     </Filter>
     <Filter Include="Generated Files\Debug">
-      <UniqueIdentifier>{6632430e-56d7-4d2e-ba84-a247f1dbc126}</UniqueIdentifier>
+      <UniqueIdentifier>{98ce0399-7458-41e3-95a6-d7f5900f88cc}</UniqueIdentifier>
       <Extensions>cpp;moc</Extensions>
       <SourceControlFiles>False</SourceControlFiles>
     </Filter>
     <Filter Include="Generated Files\Release">
-      <UniqueIdentifier>{a41bde17-857e-4681-a232-155bd1061b9d}</UniqueIdentifier>
+      <UniqueIdentifier>{621ed436-c59f-4a93-ab5c-0f964693d350}</UniqueIdentifier>
       <Extensions>cpp;moc</Extensions>
       <SourceControlFiles>False</SourceControlFiles>
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="CRUDmw.cpp">
+    <ClCompile Include="ADCDataReader.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="models\TSExaminations.cpp">
@@ -70,6 +70,12 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="main.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="plotter.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="rawdataparser.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="tsanalitics.cpp">
@@ -102,19 +108,28 @@
     <ClCompile Include="tstempanalitic.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="tsusbdatareader.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="tools\tsvalidationtools.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="volumesolver.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Debug\moc_CRUDmw.cpp">
+    <ClCompile Include="Debug\moc_ADCDataReader.cpp">
       <Filter>Generated Files\Debug</Filter>
     </ClCompile>
-    <ClCompile Include="Release\moc_CRUDmw.cpp">
+    <ClCompile Include="Release\moc_ADCDataReader.cpp">
+      <Filter>Generated Files\Release</Filter>
+    </ClCompile>
+    <ClCompile Include="Debug\moc_plotter.cpp">
+      <Filter>Generated Files\Debug</Filter>
+    </ClCompile>
+    <ClCompile Include="Release\moc_plotter.cpp">
+      <Filter>Generated Files\Release</Filter>
+    </ClCompile>
+    <ClCompile Include="Debug\moc_rawdataparser.cpp">
+      <Filter>Generated Files\Debug</Filter>
+    </ClCompile>
+    <ClCompile Include="Release\moc_rawdataparser.cpp">
       <Filter>Generated Files\Release</Filter>
     </ClCompile>
     <ClCompile Include="Debug\moc_tsanalitics.cpp">
@@ -177,18 +192,12 @@
     <ClCompile Include="Release\moc_tstempanalitic.cpp">
       <Filter>Generated Files\Release</Filter>
     </ClCompile>
-    <ClCompile Include="Debug\moc_tsusbdatareader.cpp">
-      <Filter>Generated Files\Debug</Filter>
-    </ClCompile>
-    <ClCompile Include="Release\moc_tsusbdatareader.cpp">
-      <Filter>Generated Files\Release</Filter>
-    </ClCompile>
     <ClCompile Include="GeneratedFiles\qrc_iconResourse.cpp">
       <Filter>Generated Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <CustomBuild Include="CRUDmw.h">
+    <CustomBuild Include="ADCDataReader.h">
       <Filter>Header Files</Filter>
     </CustomBuild>
     <ClInclude Include="Rtusbapi.h">
@@ -206,6 +215,12 @@
     <ClInclude Include="extremum.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <CustomBuild Include="plotter.h">
+      <Filter>Header Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="rawdataparser.h">
+      <Filter>Header Files</Filter>
+    </CustomBuild>
     <ClInclude Include="ts_types.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -239,9 +254,6 @@
     <CustomBuild Include="tstempanalitic.h">
       <Filter>Header Files</Filter>
     </CustomBuild>
-    <CustomBuild Include="tsusbdatareader.h">
-      <Filter>Header Files</Filter>
-    </CustomBuild>
     <ClInclude Include="tools\tsvalidationtools.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -250,13 +262,7 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <CustomBuild Include="CRUDmw.ui">
-      <Filter>Form Files</Filter>
-    </CustomBuild>
     <CustomBuild Include="colibrateDialog.ui">
-      <Filter>Form Files</Filter>
-    </CustomBuild>
-    <CustomBuild Include="dialog.ui">
       <Filter>Form Files</Filter>
     </CustomBuild>
     <CustomBuild Include="patientprofile.ui">
@@ -308,13 +314,7 @@
     </None>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="GeneratedFiles\ui_CRUDmw.h">
-      <Filter>Generated Files</Filter>
-    </ClInclude>
     <ClInclude Include="GeneratedFiles\ui_colibrateDialog.h">
-      <Filter>Generated Files</Filter>
-    </ClInclude>
-    <ClInclude Include="GeneratedFiles\ui_dialog.h">
       <Filter>Generated Files</Filter>
     </ClInclude>
     <ClInclude Include="GeneratedFiles\ui_patientprofile.h">

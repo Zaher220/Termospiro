@@ -26,7 +26,7 @@ public:
 
     int getMaxcVol() const;
     void setMaxcVol(int value);
-    void startCPlottingTimer(int volume);
+    void startCPlottingTimer(int m_volume);
 
 
 
@@ -66,18 +66,26 @@ public:
     QWidget *getParentWindow() const;
     void setParentWindow(QWidget *value);
 
+    bool getRecordingStarted() const;
+    void setRecordingStarted(bool value);
+
 signals:
     void stopACQU();
 public slots:
     void plotNow();
     void plotCalibration();
-    void startPlottingTimer(int volume);
+    void startPlottingTimer(int m_volume);
     void stopPlottingTimer();
     void scaleTempIn(int value);
     void scaleTempOut(int value);
     void scaleVolume(int value);
     void scaleForHorizontal(int value);
     void changeTempInScrollValue(int value);
+private slots:
+
+
+    void on_horizontalScrollBar_sliderPressed();
+
 private:
     QTimer plotingTimer;
 
@@ -90,9 +98,9 @@ private:
     QPainter pVolume;
     QPainter pTempIn;
     QPainter pTempOut;
-    int* volume;
-    int* tempIn;
-    int* tempOut;
+    int* m_volume;
+    int* m_tempIn;
+    int* m_tempOut;
     int screenLimit;
     int startIndex;
     int W;

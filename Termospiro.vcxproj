@@ -20,7 +20,7 @@
     <PlatformToolSet>v120</PlatformToolSet>
     <OutputDirectory>release\</OutputDirectory>
     <ATLMinimizesCRunTimeLibraryUsage>false</ATLMinimizesCRunTimeLibraryUsage>
-    <CharacterSet>Unicode</CharacterSet>
+    <CharacterSet>NotSet</CharacterSet>
     <ConfigurationType>Application</ConfigurationType>
     <IntermediateDirectory>release\</IntermediateDirectory>
     <PrimaryOutput>Termospiro</PrimaryOutput>
@@ -29,7 +29,7 @@
     <PlatformToolSet>v120</PlatformToolSet>
     <OutputDirectory>debug\</OutputDirectory>
     <ATLMinimizesCRunTimeLibraryUsage>false</ATLMinimizesCRunTimeLibraryUsage>
-    <CharacterSet>Unicode</CharacterSet>
+    <CharacterSet>NotSet</CharacterSet>
     <ConfigurationType>Application</ConfigurationType>
     <IntermediateDirectory>debug\</IntermediateDirectory>
     <PrimaryOutput>Termospiro</PrimaryOutput>
@@ -136,8 +136,14 @@
     </ResourceCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="CRUDmw.cpp" />
-    <ClCompile Include="Debug\moc_CRUDmw.cpp">
+    <ClCompile Include="ADCDataReader.cpp" />
+    <ClCompile Include="Debug\moc_ADCDataReader.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="Debug\moc_plotter.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="Debug\moc_rawdataparser.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="Debug\moc_tsanalitics.cpp">
@@ -170,9 +176,6 @@
     <ClCompile Include="Debug\moc_tstempanalitic.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
     </ClCompile>
-    <ClCompile Include="Debug\moc_tsusbdatareader.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
-    </ClCompile>
     <ClCompile Include="GeneratedFiles\qrc_iconResourse.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
       </PrecompiledHeader>
@@ -183,7 +186,15 @@
     <ClCompile Include="models\TSPatients.cpp" />
     <ClCompile Include="bdgod.cpp" />
     <ClCompile Include="main.cpp" />
-    <ClCompile Include="Release\moc_CRUDmw.cpp">
+    <ClCompile Include="plotter.cpp" />
+    <ClCompile Include="rawdataparser.cpp" />
+    <ClCompile Include="Release\moc_ADCDataReader.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="Release\moc_plotter.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="Release\moc_rawdataparser.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="Release\moc_tsanalitics.cpp">
@@ -216,9 +227,6 @@
     <ClCompile Include="Release\moc_tstempanalitic.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
     </ClCompile>
-    <ClCompile Include="Release\moc_tsusbdatareader.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
-    </ClCompile>
     <ClCompile Include="tsanalitics.cpp" />
     <ClCompile Include="inputs\tscombobox.cpp" />
     <ClCompile Include="tscontroller.cpp" />
@@ -229,34 +237,31 @@
     <ClCompile Include="tsrealcalcwrapper.cpp" />
     <ClCompile Include="inputs\tstableview.cpp" />
     <ClCompile Include="tstempanalitic.cpp" />
-    <ClCompile Include="tsusbdatareader.cpp" />
     <ClCompile Include="tools\tsvalidationtools.cpp" />
     <ClCompile Include="volumesolver.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <CustomBuild Include="CRUDmw.h">
+    <CustomBuild Include="ADCDataReader.h">
       <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">setlocal
 if errorlevel 1 goto VCEnd
 
 if errorlevel 1 goto VCEnd
 endlocal
 "$(QTDIR)\bin\moc.exe"  "%(FullPath)" -o "$(ConfigurationName)\moc_%(Filename).cpp"  -D_WINDOWS -DUNICODE -DWIN32 -DQT_NO_DEBUG -DQT_PRINTSUPPORT_LIB -DQT_WIDGETS_LIB -DQT_GUI_LIB -DQT_SQL_LIB -DQT_CORE_LIB -DNDEBUG "-I." "-I.\..\..\qt\5.4\msvc2013\include" "-I.\..\..\qt\5.4\msvc2013\include\QtPrintSupport" "-I.\..\..\qt\5.4\msvc2013\include\QtWidgets" "-I.\..\..\qt\5.4\msvc2013\include\QtGui" "-I.\..\..\qt\5.4\msvc2013\include\QtANGLE" "-I.\..\..\qt\5.4\msvc2013\include\QtSql" "-I.\..\..\qt\5.4\msvc2013\include\QtCore" "-I.\release" "-I.\..\..\qt\5.4\msvc2013\mkspecs\win32-msvc2013"</Command>
-      <Message Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Moc%27ing CRUDmw.h...</Message>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Moc%27ing ADCDataReader.h...</Message>
       <Command Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">setlocal
 if errorlevel 1 goto VCEnd
 
 if errorlevel 1 goto VCEnd
 endlocal
 "$(QTDIR)\bin\moc.exe"  "%(FullPath)" -o "$(ConfigurationName)\moc_%(Filename).cpp"  -D_WINDOWS -DUNICODE -DWIN32 -DQT_PRINTSUPPORT_LIB -DQT_WIDGETS_LIB -DQT_GUI_LIB -DQT_SQL_LIB -DQT_CORE_LIB "-I." "-I.\..\..\qt\5.4\msvc2013\include" "-I.\..\..\qt\5.4\msvc2013\include\QtPrintSupport" "-I.\..\..\qt\5.4\msvc2013\include\QtWidgets" "-I.\..\..\qt\5.4\msvc2013\include\QtGui" "-I.\..\..\qt\5.4\msvc2013\include\QtANGLE" "-I.\..\..\qt\5.4\msvc2013\include\QtSql" "-I.\..\..\qt\5.4\msvc2013\include\QtCore" "-I.\debug" "-I.\..\..\qt\5.4\msvc2013\mkspecs\win32-msvc2013"</Command>
-      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Moc%27ing CRUDmw.h...</Message>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Moc%27ing ADCDataReader.h...</Message>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(ConfigurationName)\moc_%(Filename).cpp</Outputs>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(ConfigurationName)\moc_%(Filename).cpp</Outputs>
       <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(QTDIR)\bin\moc.exe;%(FullPath)</AdditionalInputs>
       <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(QTDIR)\bin\moc.exe;%(FullPath)</AdditionalInputs>
     </CustomBuild>
     <ClInclude Include="GeneratedFiles\ui_colibrateDialog.h" />
-    <ClInclude Include="GeneratedFiles\ui_CRUDmw.h" />
-    <ClInclude Include="GeneratedFiles\ui_dialog.h" />
     <ClInclude Include="GeneratedFiles\ui_patientprofile.h" />
     <ClInclude Include="GeneratedFiles\ui_tsprintview.h" />
     <ClInclude Include="GeneratedFiles\ui_tsprogressdialog.h" />
@@ -268,6 +273,46 @@ endlocal
     <ClInclude Include="models\TSPatients.h" />
     <ClInclude Include="bdgod.h" />
     <ClInclude Include="extremum.h" />
+    <CustomBuild Include="plotter.h">
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">setlocal
+if errorlevel 1 goto VCEnd
+
+if errorlevel 1 goto VCEnd
+endlocal
+"$(QTDIR)\bin\moc.exe"  "%(FullPath)" -o "$(ConfigurationName)\moc_%(Filename).cpp"  -D_WINDOWS -DUNICODE -DWIN32 -DQT_NO_DEBUG -DQT_PRINTSUPPORT_LIB -DQT_WIDGETS_LIB -DQT_GUI_LIB -DQT_SQL_LIB -DQT_CORE_LIB -DNDEBUG "-I." "-I.\..\..\qt\5.4\msvc2013\include" "-I.\..\..\qt\5.4\msvc2013\include\QtPrintSupport" "-I.\..\..\qt\5.4\msvc2013\include\QtWidgets" "-I.\..\..\qt\5.4\msvc2013\include\QtGui" "-I.\..\..\qt\5.4\msvc2013\include\QtANGLE" "-I.\..\..\qt\5.4\msvc2013\include\QtSql" "-I.\..\..\qt\5.4\msvc2013\include\QtCore" "-I.\release" "-I.\..\..\qt\5.4\msvc2013\mkspecs\win32-msvc2013"</Command>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Moc%27ing plotter.h...</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">setlocal
+if errorlevel 1 goto VCEnd
+
+if errorlevel 1 goto VCEnd
+endlocal
+"$(QTDIR)\bin\moc.exe"  "%(FullPath)" -o "$(ConfigurationName)\moc_%(Filename).cpp"  -D_WINDOWS -DUNICODE -DWIN32 -DQT_PRINTSUPPORT_LIB -DQT_WIDGETS_LIB -DQT_GUI_LIB -DQT_SQL_LIB -DQT_CORE_LIB "-I." "-I.\..\..\qt\5.4\msvc2013\include" "-I.\..\..\qt\5.4\msvc2013\include\QtPrintSupport" "-I.\..\..\qt\5.4\msvc2013\include\QtWidgets" "-I.\..\..\qt\5.4\msvc2013\include\QtGui" "-I.\..\..\qt\5.4\msvc2013\include\QtANGLE" "-I.\..\..\qt\5.4\msvc2013\include\QtSql" "-I.\..\..\qt\5.4\msvc2013\include\QtCore" "-I.\debug" "-I.\..\..\qt\5.4\msvc2013\mkspecs\win32-msvc2013"</Command>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Moc%27ing plotter.h...</Message>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(ConfigurationName)\moc_%(Filename).cpp</Outputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(ConfigurationName)\moc_%(Filename).cpp</Outputs>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(QTDIR)\bin\moc.exe;%(FullPath)</AdditionalInputs>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(QTDIR)\bin\moc.exe;%(FullPath)</AdditionalInputs>
+    </CustomBuild>
+    <CustomBuild Include="rawdataparser.h">
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">setlocal
+if errorlevel 1 goto VCEnd
+
+if errorlevel 1 goto VCEnd
+endlocal
+"$(QTDIR)\bin\moc.exe"  "%(FullPath)" -o "$(ConfigurationName)\moc_%(Filename).cpp"  -D_WINDOWS -DUNICODE -DWIN32 -DQT_NO_DEBUG -DQT_PRINTSUPPORT_LIB -DQT_WIDGETS_LIB -DQT_GUI_LIB -DQT_SQL_LIB -DQT_CORE_LIB -DNDEBUG "-I." "-I.\..\..\qt\5.4\msvc2013\include" "-I.\..\..\qt\5.4\msvc2013\include\QtPrintSupport" "-I.\..\..\qt\5.4\msvc2013\include\QtWidgets" "-I.\..\..\qt\5.4\msvc2013\include\QtGui" "-I.\..\..\qt\5.4\msvc2013\include\QtANGLE" "-I.\..\..\qt\5.4\msvc2013\include\QtSql" "-I.\..\..\qt\5.4\msvc2013\include\QtCore" "-I.\release" "-I.\..\..\qt\5.4\msvc2013\mkspecs\win32-msvc2013"</Command>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Moc%27ing rawdataparser.h...</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">setlocal
+if errorlevel 1 goto VCEnd
+
+if errorlevel 1 goto VCEnd
+endlocal
+"$(QTDIR)\bin\moc.exe"  "%(FullPath)" -o "$(ConfigurationName)\moc_%(Filename).cpp"  -D_WINDOWS -DUNICODE -DWIN32 -DQT_PRINTSUPPORT_LIB -DQT_WIDGETS_LIB -DQT_GUI_LIB -DQT_SQL_LIB -DQT_CORE_LIB "-I." "-I.\..\..\qt\5.4\msvc2013\include" "-I.\..\..\qt\5.4\msvc2013\include\QtPrintSupport" "-I.\..\..\qt\5.4\msvc2013\include\QtWidgets" "-I.\..\..\qt\5.4\msvc2013\include\QtGui" "-I.\..\..\qt\5.4\msvc2013\include\QtANGLE" "-I.\..\..\qt\5.4\msvc2013\include\QtSql" "-I.\..\..\qt\5.4\msvc2013\include\QtCore" "-I.\debug" "-I.\..\..\qt\5.4\msvc2013\mkspecs\win32-msvc2013"</Command>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Moc%27ing rawdataparser.h...</Message>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(ConfigurationName)\moc_%(Filename).cpp</Outputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(ConfigurationName)\moc_%(Filename).cpp</Outputs>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(QTDIR)\bin\moc.exe;%(FullPath)</AdditionalInputs>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(QTDIR)\bin\moc.exe;%(FullPath)</AdditionalInputs>
+    </CustomBuild>
     <ClInclude Include="ts_types.h" />
     <CustomBuild Include="tsanalitics.h">
       <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">setlocal
@@ -469,53 +514,11 @@ endlocal
       <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(QTDIR)\bin\moc.exe;%(FullPath)</AdditionalInputs>
       <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(QTDIR)\bin\moc.exe;%(FullPath)</AdditionalInputs>
     </CustomBuild>
-    <CustomBuild Include="tsusbdatareader.h">
-      <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">setlocal
-if errorlevel 1 goto VCEnd
-
-if errorlevel 1 goto VCEnd
-endlocal
-"$(QTDIR)\bin\moc.exe"  "%(FullPath)" -o "$(ConfigurationName)\moc_%(Filename).cpp"  -D_WINDOWS -DUNICODE -DWIN32 -DQT_NO_DEBUG -DQT_PRINTSUPPORT_LIB -DQT_WIDGETS_LIB -DQT_GUI_LIB -DQT_SQL_LIB -DQT_CORE_LIB -DNDEBUG "-I." "-I.\..\..\qt\5.4\msvc2013\include" "-I.\..\..\qt\5.4\msvc2013\include\QtPrintSupport" "-I.\..\..\qt\5.4\msvc2013\include\QtWidgets" "-I.\..\..\qt\5.4\msvc2013\include\QtGui" "-I.\..\..\qt\5.4\msvc2013\include\QtANGLE" "-I.\..\..\qt\5.4\msvc2013\include\QtSql" "-I.\..\..\qt\5.4\msvc2013\include\QtCore" "-I.\release" "-I.\..\..\qt\5.4\msvc2013\mkspecs\win32-msvc2013"</Command>
-      <Message Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Moc%27ing tsusbdatareader.h...</Message>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">setlocal
-if errorlevel 1 goto VCEnd
-
-if errorlevel 1 goto VCEnd
-endlocal
-"$(QTDIR)\bin\moc.exe"  "%(FullPath)" -o "$(ConfigurationName)\moc_%(Filename).cpp"  -D_WINDOWS -DUNICODE -DWIN32 -DQT_PRINTSUPPORT_LIB -DQT_WIDGETS_LIB -DQT_GUI_LIB -DQT_SQL_LIB -DQT_CORE_LIB "-I." "-I.\..\..\qt\5.4\msvc2013\include" "-I.\..\..\qt\5.4\msvc2013\include\QtPrintSupport" "-I.\..\..\qt\5.4\msvc2013\include\QtWidgets" "-I.\..\..\qt\5.4\msvc2013\include\QtGui" "-I.\..\..\qt\5.4\msvc2013\include\QtANGLE" "-I.\..\..\qt\5.4\msvc2013\include\QtSql" "-I.\..\..\qt\5.4\msvc2013\include\QtCore" "-I.\debug" "-I.\..\..\qt\5.4\msvc2013\mkspecs\win32-msvc2013"</Command>
-      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Moc%27ing tsusbdatareader.h...</Message>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(ConfigurationName)\moc_%(Filename).cpp</Outputs>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(ConfigurationName)\moc_%(Filename).cpp</Outputs>
-      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(QTDIR)\bin\moc.exe;%(FullPath)</AdditionalInputs>
-      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(QTDIR)\bin\moc.exe;%(FullPath)</AdditionalInputs>
-    </CustomBuild>
     <ClInclude Include="tools\tsvalidationtools.h" />
     <ClInclude Include="volumesolver.h" />
   </ItemGroup>
   <ItemGroup>
-    <CustomBuild Include="CRUDmw.ui">
-      <FileType>Document</FileType>
-      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(QTDIR)\bin\uic.exe;%(AdditionalInputs)</AdditionalInputs>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">"$(QTDIR)\bin\uic.exe" -o ".\GeneratedFiles\ui_%(Filename).h" "%(FullPath)"</Command>
-      <Message Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Uic%27ing %(Identity)...</Message>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">.\GeneratedFiles\ui_%(Filename).h;%(Outputs)</Outputs>
-      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(QTDIR)\bin\uic.exe;%(AdditionalInputs)</AdditionalInputs>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">"$(QTDIR)\bin\uic.exe" -o ".\GeneratedFiles\ui_%(Filename).h" "%(FullPath)"</Command>
-      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Uic%27ing %(Identity)...</Message>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">.\GeneratedFiles\ui_%(Filename).h;%(Outputs)</Outputs>
-    </CustomBuild>
     <CustomBuild Include="colibrateDialog.ui">
-      <FileType>Document</FileType>
-      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(QTDIR)\bin\uic.exe;%(AdditionalInputs)</AdditionalInputs>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">"$(QTDIR)\bin\uic.exe" -o ".\GeneratedFiles\ui_%(Filename).h" "%(FullPath)"</Command>
-      <Message Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Uic%27ing %(Identity)...</Message>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">.\GeneratedFiles\ui_%(Filename).h;%(Outputs)</Outputs>
-      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(QTDIR)\bin\uic.exe;%(AdditionalInputs)</AdditionalInputs>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">"$(QTDIR)\bin\uic.exe" -o ".\GeneratedFiles\ui_%(Filename).h" "%(FullPath)"</Command>
-      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Uic%27ing %(Identity)...</Message>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">.\GeneratedFiles\ui_%(Filename).h;%(Outputs)</Outputs>
-    </CustomBuild>
-    <CustomBuild Include="dialog.ui">
       <FileType>Document</FileType>
       <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(QTDIR)\bin\uic.exe;%(AdditionalInputs)</AdditionalInputs>
       <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">"$(QTDIR)\bin\uic.exe" -o ".\GeneratedFiles\ui_%(Filename).h" "%(FullPath)"</Command>

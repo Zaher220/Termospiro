@@ -4,6 +4,10 @@
 #include <tstempanalitic.h>
 
 TSCurveBuffer::TSCurveBuffer(QObject *parent) :QObject(parent){
+    ts_volume.resize(18000);
+    ts_tempIn.resize(18000);
+    ts_tempOut.resize(18000);
+    ts_integral.resize(18000);
     lenght=0;
     ts_end = -1;
     ts_volumeColibration = 0;
@@ -20,7 +24,7 @@ int TSCurveBuffer::end(){
     return ts_end;
 }
 
-int* TSCurveBuffer::volume(){
+/*int* TSCurveBuffer::volume(){
     return ts_integral;
 }
 
@@ -30,7 +34,7 @@ int* TSCurveBuffer::tempIn(){
 
 int* TSCurveBuffer::tempOut(){
     return ts_tempOut;
-}
+}*/
 
 void TSCurveBuffer::append(int v, int tI, int tO, bool realtime){
     lenght++;
@@ -91,9 +95,11 @@ void TSCurveBuffer::append(int v, int tI, int tO, bool realtime){
         ts_minVolume = ts_integral[0];
         ts_minVolume = ts_integral[0];
     }
-    ts_volume[ts_end] = segs.curV = v;
-    ts_tempIn[ts_end] = segs.curTin = tI;
-    ts_tempOut[ts_end] = segs.curTout = tO;
+    if (ts_end > 0){
+        ts_volume[ts_end] = segs.curV = v;
+        ts_tempIn[ts_end] = segs.curTin = tI;
+        ts_tempOut[ts_end] = segs.curTout = tO;
+    }
     emit changed(segs);
     if(realtime && ts_end > 0){
         paramcalc.addData(ts_tempIn[ts_end], ts_tempOut[ts_end], ts_integral[ts_end]);
@@ -129,6 +135,47 @@ void TSCurveBuffer::setStartIndex(int s){
 
 void TSCurveBuffer::setEnd(int n){
     ts_end = n;
+}
+
+QPair<int, int> TSCurveBuffer::getTempInIntervalPair(){
+    QPair<int, int> interval;
+    if( abs(ts_maxTempIn-ts_minTempIn) < 500 ){
+        interval.first = -5000;
+        interval.second = 5000;
+    }else{
+        interval.first = ts_minTempIn-100;
+        interval.second = ts_maxTempIn+100;
+    }
+    return interval;
+}
+
+QPair<int, int> TSCurveBuffer::getTempOutIntervalPair(){
+    QPair<int, int> interval;
+    if( abs(ts_maxTempOut-ts_minTempOut) < 500 ){
+        interval.first = -5000;
+        interval.second = 5000;
+    }else{
+        interval.first = ts_minTempOut - 100;
+        interval.second = ts_minTempOut + 100;
+    }
+    return interval;
+}
+
+QPair<int, int> TSCurveBuffer::getVolumeIntervalPair(){
+    QPair<int, int> interval;
+    if( abs(ts_maxVolume-ts_minVolume) < 250){
+        interval.first = -5000;
+        interval.second = 5000;
+    }else{
+        if( abs(ts_minVolume) > ts_maxVolume){
+            interval.first = ts_minVolume - 120;
+            interval.second = (-ts_minVolume) + 100;
+        }else{
+            interval.first = -ts_maxVolume - 120;
+            interval.second = ts_maxVolume+100;
+        }
+    }
+    return interval;
 }
 
 int* TSCurveBuffer::getTempInInterval(){
@@ -233,7 +280,34 @@ int TSCurveBuffer::setReference(QSettings *set){
 }
 
 void TSCurveBuffer::setLenght(int l){
-    lenght=l;
+    lenght = l;
+}
+
+QVector<int> TSCurveBuffer::tempInVector()
+{
+    QVector<int> vec;
+    for (int i = 0; i < ts_end; i++){
+        vec.push_back(ts_tempIn[i]);
+    }
+    return vec;
+}
+
+QVector<int> TSCurveBuffer::tempOutVector()
+{
+    QVector<int> vec;
+    for (int i = 0; i < ts_end; i++){
+        vec.push_back(ts_tempOut[i]);
+    }
+    return vec;
+}
+
+QVector<int> TSCurveBuffer::volumeVector()
+{
+    QVector<int> vec;
+    for (int i = 0; i < ts_end; i++){
+        vec.push_back(ts_integral[i]);
+    }
+    return vec;
 }
 
 void TSCurveBuffer::updateAvData(int avgTempIn, int avgTempOut, int avgDo, int ChD){
