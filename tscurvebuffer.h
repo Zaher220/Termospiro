@@ -32,9 +32,7 @@ public:
     ~TSCurveBuffer();
     int end();
     CurvesSegnments lastSegments();
-    /* int* tempIn();
-    int* tempOut();
-    int* volume();*/
+
     void setVolumeColibration(int c,bool realtime);
     void setValues(int* volume,int* tin,int* tout, int n);
     void append(int v, int tI, int tO, bool realtime = true);
@@ -72,10 +70,7 @@ public slots:
     void updateAvData(int avgTempIn, int avgTempOut, int avgDo, int ChD);
     void appendData(QVector<double> volume, QVector<double> tempin, QVector<double> tempout);
 private:
-    /* int ts_volume[18000];
-    int ts_tempIn[18000];
-    int ts_tempOut[18000];
-    int ts_integral[18000];*/
+
     QVector<int> ts_volume;
     QVector<int> ts_tempIn;
     QVector<int> ts_tempOut;

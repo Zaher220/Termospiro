@@ -24,18 +24,6 @@ int TSCurveBuffer::end(){
     return ts_end;
 }
 
-/*int* TSCurveBuffer::volume(){
-    return ts_integral;
-}
-
-int* TSCurveBuffer::tempIn(){
-    return ts_tempIn;
-}
-
-int* TSCurveBuffer::tempOut(){
-    return ts_tempOut;
-}*/
-
 void TSCurveBuffer::append(int v, int tI, int tO, bool realtime){
     lenght++;
     if(ts_end == 17999){

@@ -26,7 +26,7 @@ void Plotter::plotNow()
     if(endIndex == 17999)
         plotingTimer.stop();
     int h = ui->gVolume->height()/2;
-    //int h1 = ui->gVolume->height()-5;
+
     int step = h/10;
     startIndex = endIndex - (W-35);
     if(startIndex < 0) startIndex = 0;
@@ -105,25 +105,6 @@ void Plotter::plotNow()
                 tempOutZ-tempOutK*tempOutAdaptive*tempout[i+startIndex+k]
                 );
 
-
-//        pVolume.drawLine(
-//                    j,
-//                    h - volumeK * volumeAdaptive * m_volume[i + startIndex],
-//                j + 1,
-//                h - volumeK * volumeAdaptive * m_volume[i + startIndex + k]
-//                );
-//        pTempIn.drawLine(
-//                    j,
-//                    tempInZ-tempInK*tempInAdaptive*m_tempIn[i+startIndex],
-//                j+1,
-//                tempInZ-tempInK*tempInAdaptive*m_tempIn[i+startIndex+k]
-//                );
-//        pTempOut.drawLine(
-//                    j,
-//                    tempOutZ-tempOutK*tempOutAdaptive*m_tempOut[i+startIndex],
-//                j+1,
-//                tempOutZ-tempOutK*tempOutAdaptive*m_tempOut[i+startIndex+k]
-//                );
         i += k;
     }
     ui->gVolume->setPixmap(bVolume);
@@ -133,7 +114,6 @@ void Plotter::plotNow()
     {
         ui->horizontalScrollBar->setEnabled(false);
         ui->horizontalScrollBar->setMaximum(startIndex/10);
-       // ui->horizontalScrollBar->setMaximum(volume.size());
         ui->horizontalScrollBar->setValue(startIndex/10);
     }
 }

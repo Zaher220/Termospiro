@@ -122,8 +122,7 @@ TSController::TSController(QWidget *parent):QMainWindow(parent)//,ui(new Ui::TSV
     connect(&m_raw_data_parser, SIGNAL(sendNewData(QVector<double>,QVector<double>,QVector<double>)), &curveBuffer, SLOT(appendData(QVector<double>,QVector<double>,QVector<double>)));
 
     ui.examsTableView->setEditTriggers(QTableView::NoEditTriggers);;
-    //connect(reader,SIGNAL(done()),&d,SLOT(accept()));
-    // connect(reader,SIGNAL(changeProgress(int)),dui.progressBar,SLOT(setValue(int)));
+
     ui.mainBox->setCurrentIndex(0);
     m_plotter.setUi(&ui);
     m_plotter.setParentWindow(this);
@@ -300,7 +299,6 @@ void TSController::calibrateVolume(){
 
 
     d.exec();
-    //connect(&cPlotingTimer,SIGNAL(timeout()),this,SLOT(plotCalibration()));
 
     m_adc_reader.startACQ();
     m_plotter.startCPlottingTimer(100);
@@ -374,12 +372,6 @@ void TSController::stopExam()
         QSqlRecord record = examinationsModel->record();
 
         QString val;
-        //int i;
-
-        /*int *mass = curveBuffer.volume();
-        for(i=0;i<n; i++){
-            val.append(QString::number(mass[i])+";");
-        }*/
 
         QVector<int> volume = curveBuffer.volumeVector();
         for( int i = 0; i < volume.size(); i++ ){
@@ -388,11 +380,7 @@ void TSController::stopExam()
 
         record.setValue("volume",val);
         val.clear();
-        /*mass = curveBuffer.tempIn();
-        for(i=0;i<n;i++)
-        {
-            val.append(QString::number(mass[i])+";");
-        }*/
+
         QVector<int> tempIn = curveBuffer.tempInVector();
         for( int i = 0; i < tempIn.size(); i++ ){
             val.append(QString::number(tempIn[i])+";");
@@ -400,11 +388,6 @@ void TSController::stopExam()
 
         record.setValue("tempIn",val);
         val.clear();
-        /*mass = curveBuffer.tempOut();
-        for(i=0;i<n;i++)
-        {
-            val.append(QString::number(mass[i])+";");
-        }*/
 
         QVector<int> tempOut = curveBuffer.tempOutVector();
         for( int i = 0; i < tempOut.size(); i++ ){
@@ -670,18 +653,11 @@ void TSController::processDataParams(){
     float AvgExpirationSpeed=0, MaxExpirationSpeed=0, AvgExpirationTime=0, AvgInspirationTime=0,
             AvgRoundTime=0, AvgTempIn=0, AvgTempOut=0, AvgTempInMinusAvgTempOut=0,  BreathingVolume=0, MVL=0, MinuteVentilation=0;
     float InspirationFrequency = 0;
-    /*int *vo = curveBuffer.volume();
-    int *ti = curveBuffer.tempIn();
-    int *to = curveBuffer.tempOut();*/
 
     QVector<int> volume = curveBuffer.volumeVector();
     QVector<int> temp_in = curveBuffer.tempInVector();
     QVector<int> temp_out = curveBuffer.tempOutVector();
-    /*for(int i=0;i<curveBuffer.getLenght();i++){
-        volume.push_back(vo[i]);
-        temp_in.push_back(ti[i]);
-        temp_out.push_back(to[i]);
-    }*/
+
     VolumeSolver* vs = new VolumeSolver(volume,temp_in,temp_out);
 
     AvgExpirationSpeed = vs->getAverageExpirationSpeed();
@@ -857,9 +833,8 @@ void TSController::printReport()
     tempInZ = h + ceil((float)(tinInt[1]+tinInt[0])*m_plotter.getTempInAdaptive()*tempInK/2);
     tempOutZ = h + ceil((float)(toutInt[1]+toutInt[0])*m_plotter.getTempOutAdaptive()*tempOutK/2);
     float volumeK =1;
-    /*int *volume = curveBuffer.volume();
-    int *tempIn = curveBuffer.tempIn();
-    int *tempOut = curveBuffer.tempOut();*/
+
+
     QVector<int> volume = curveBuffer.volumeVector();
     QVector<int> tempIn = curveBuffer.tempInVector();
     QVector<int> tempOut = curveBuffer.tempOutVector();
