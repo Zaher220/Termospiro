@@ -17,7 +17,6 @@
 #include "ADCDataReader.h"
 #include "rawdataparser.h"
 #include "plotter.h"
-//#include "patientprofilecontrol.h"
 
 namespace Ui {
 class TSView;
@@ -65,11 +64,15 @@ public slots:
     void printReport();
 protected:
     void resizeEvent(QResizeEvent *evt);
-    bool eventFilter(QObject *obj, QEvent *e);
     void closeEvent(QCloseEvent *e);
     void openPrivateDB(QSqlRecord record);
 private slots:
+    void on_backPatientProfileButton_clicked();
+    void on_backPatientListButton_clicked();
     void on_openButton_clicked();
+
+    void on_backCallibrateButton_clicked();
+    void on_backExamButton_clicked();
 
 private:
     ADCDataReader m_adc_reader;

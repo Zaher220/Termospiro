@@ -128,6 +128,9 @@ TSController::TSController(QWidget *parent):QMainWindow(parent)//,ui(new Ui::TSV
     m_plotter.setUi(&ui);
     m_plotter.setParentWindow(this);
     connect(&m_plotter, SIGNAL(stopACQU()), &m_adc_reader, SLOT(stopACQ()));
+
+
+    connect(ui.backExamButton, SIGNAL(clicked()), this, SLOT(on_pressBuckButton()));
 }
 
 TSController::~TSController()
@@ -273,7 +276,7 @@ void TSController::calibrateVolume(){
     QSettings settings("settings.ini",QSettings::IniFormat);
     QDialog d(this);
     Ui::TSProgressDialog dui;
-    //d.setWindowFlags(Qt::SubWindow);
+
     dui.setupUi(&d);
 
     connect(&m_adc_reader, SIGNAL(done()), &d, SLOT(accept()));
@@ -369,7 +372,7 @@ void TSController::stopExam()
 
         qDebug()<<"Stop exam";
         QSqlRecord record = examinationsModel->record();
-        int n = curveBuffer.end();
+
         QString val;
         //int i;
 
@@ -613,65 +616,6 @@ void TSController::changeScrollBarAfterScaling(int before, int after)
         ui.horizontalScrollBar->setMaximum(ui.horizontalScrollBar->maximum()*2);
         ui.horizontalScrollBar->setValue(val*2);
     }
-}
-
-bool TSController::eventFilter(QObject *obj, QEvent *e)
-{
-    //qDebug()<<"TSController::eventFilter";
-
-    /*QMouseEvent *evt;
-    if(e->type() == QEvent::MouseButtonPress)
-        evt = static_cast<QMouseEvent*>(e);
-    if(obj == ui.backPatientProfileButton && evt->button()==Qt::LeftButton)
-    {
-        if(currentAction == CreatePatientProfileAction){
-            ui.mainBox->setCurrentIndex(0);
-            patientsModel->setFilter("");
-            patientsModel->select();
-        }
-        if(currentAction == NoAction){
-            ui.mainBox->setCurrentIndex(2);
-            patientsModel->setFilter("");
-            patientsModel->select();
-        }
-        ui.horizontalScrollBar->setEnabled(false);
-    }
-    //if (obj == ui.backPatientListButton && evt->button()==Qt::LeftButton)
-    if (obj == ui.backPatientListButton && evt->button()==Qt::LeftButton)
-    {
-        ui.mainBox->setCurrentIndex(0);
-        patientsModel->setFilter("");
-        patientsModel->select();
-        ui.horizontalScrollBar->setEnabled(false);
-    }*/
-    /*if (obj == ui.openButton && evt->button()==Qt::LeftButton)
-    {
-        ui.mainBox->setCurrentIndex(0);
-        patientsModel->setFilter("");
-        patientsModel->select();
-        ui.horizontalScrollBar->setEnabled(false);
-    }*/
-    /* if(obj == ui.backCallibrateButton && evt->button()==Qt::LeftButton)
-    {
-        ui.mainBox->setCurrentIndex(3);
-        curveBuffer.clean();
-    }
-    if(obj == ui.backExamButton && evt->button()==Qt::LeftButton)
-    {
-        if(!openUser){
-            ui.mainBox->setCurrentIndex(4);
-            ui.managmentSpaser->setGeometry(QRect(0,0,2,2));
-            ui.managmentBox->setVisible(false);
-        }
-        else{
-            qDebug()<<examinationsModel->filter();
-            ui.mainBox->setCurrentIndex(3);
-            ui.managmentSpaser->setGeometry(QRect(0,0,2,2));
-            ui.managmentBox->setVisible(false);
-        }
-        curveBuffer.clean();
-    }*/
-    return QObject::eventFilter(obj,e);
 }
 
 void TSController::openPrivateDB(QSqlRecord record)
@@ -951,6 +895,31 @@ void TSController::closeEvent(QCloseEvent *e){
     e->accept();
 }
 
+
+void TSController::on_backPatientProfileButton_clicked()
+{
+    if(currentAction == CreatePatientProfileAction){
+        ui.mainBox->setCurrentIndex(0);
+        patientsModel->setFilter("");
+        patientsModel->select();
+    }
+    if(currentAction == NoAction){
+        ui.mainBox->setCurrentIndex(2);
+        patientsModel->setFilter("");
+        patientsModel->select();
+    }
+    ui.horizontalScrollBar->setEnabled(false);
+    qDebug()<<"Hellow click";
+}
+
+void TSController::on_backPatientListButton_clicked()
+{
+    ui.mainBox->setCurrentIndex(0);
+    patientsModel->setFilter("");
+    patientsModel->select();
+    ui.horizontalScrollBar->setEnabled(false);
+}
+
 void TSController::on_openButton_clicked()
 {
     ui.mainBox->setCurrentIndex(0);
@@ -958,3 +927,26 @@ void TSController::on_openButton_clicked()
     patientsModel->select();
     ui.horizontalScrollBar->setEnabled(false);
 }
+
+void TSController::on_backCallibrateButton_clicked()
+{
+    ui.mainBox->setCurrentIndex(3);
+    curveBuffer.clean();
+}
+
+void TSController::on_backExamButton_clicked()
+{
+    if(!openUser){
+        ui.mainBox->setCurrentIndex(4);
+        ui.managmentSpaser->setGeometry(QRect(0,0,2,2));
+        ui.managmentBox->setVisible(false);
+    }
+    else{
+        qDebug()<<examinationsModel->filter();
+        ui.mainBox->setCurrentIndex(3);
+        ui.managmentSpaser->setGeometry(QRect(0,0,2,2));
+        ui.managmentBox->setVisible(false);
+    }
+    curveBuffer.clean();
+}
+

@@ -86,6 +86,7 @@ private slots:
 
     void on_horizontalScrollBar_sliderPressed();
 
+
 private:
     QTimer plotingTimer;
 

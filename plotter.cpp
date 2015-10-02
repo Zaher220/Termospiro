@@ -535,4 +535,3 @@ void Plotter::setRecordingStarted(bool value)
 {
     recordingStarted = value;
 }
-
