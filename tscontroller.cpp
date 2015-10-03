@@ -118,8 +118,8 @@ TSController::TSController(QWidget *parent):QMainWindow(parent)//,ui(new Ui::TSV
     ui.backCallibrateButton->installEventFilter(this);
     ui.backExamButton->installEventFilter(this);
 
-    connect(&m_adc_reader, SIGNAL(sendACQData(std::vector<std::vector<short> >)), &m_raw_data_parser, SLOT(setACQData(std::vector<std::vector<short> >)));
-    connect(&m_raw_data_parser, SIGNAL(sendNewData(QVector<double>,QVector<double>,QVector<double>)), &curveBuffer, SLOT(appendData(QVector<double>,QVector<double>,QVector<double>)));
+    connect(&m_adc_reader, SIGNAL(sendACQData(AdcDataMatrix)), &m_raw_data_parser, SLOT(setACQData(AdcDataMatrix)));
+    connect(&m_raw_data_parser, SIGNAL(sendNewData(QVector<int>,QVector<int>,QVector<int>)), &curveBuffer, SLOT(appendData(QVector<int>,QVector<int>,QVector<int>)));
 
     ui.examsTableView->setEditTriggers(QTableView::NoEditTriggers);;
 
@@ -129,7 +129,7 @@ TSController::TSController(QWidget *parent):QMainWindow(parent)//,ui(new Ui::TSV
     connect(&m_plotter, SIGNAL(stopACQU()), &m_adc_reader, SLOT(stopACQ()));
 
 
-    connect(ui.backExamButton, SIGNAL(clicked()), this, SLOT(on_pressBuckButton()));
+    //connect(ui.backExamButton, SIGNAL(clicked()), this, SLOT(on_pressBuckButton()));
 }
 
 TSController::~TSController()

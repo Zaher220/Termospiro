@@ -8,14 +8,17 @@ DWORD WINAPI runACQ(void* Param)
 
 ADCDataReader::ADCDataReader(QObject *parent):QObject(parent)
 {
+    char ss[] = "usb3000";
+    strcpy(mod_name, ss);
+
     ReadBuffer1 = new SHORT[NBlockRead * DataStep];
     ReadBuffer2 = new SHORT[NBlockRead * DataStep];
-    hMutex = CreateMutex(NULL, FALSE, NULL);
+    //hMutex = CreateMutex(NULL, FALSE, "reader");
 }
 
 ADCDataReader::~ADCDataReader()
 {
-    if (!is_acq_started)
+    if (is_acq_started)
         stopACQ();
     delete[] ReadBuffer1;
     delete[] ReadBuffer2;
@@ -44,8 +47,12 @@ bool ADCDataReader::initADC()
 
     // получим указатель на интерфейс модуля USB3000
     char ss[] = "usb3000";
-    char *s = ss;
-    pModule = static_cast<IRTUSB3000 *>(RtCreateInstance(s));
+    char *module_name = ss;
+    //pModule = static_cast<IRTUSB3000 *>(RtCreateInstance(s));
+    pModule = static_cast<IRTUSB3000 *>(RtCreateInstance("usb3000"));
+    //pModule = static_cast<IRTUSB3000 *>(RtCreateInstance(module_name));
+    char *ptr = mod_name;
+    //pModule = static_cast<IRTUSB3000 *>(RtCreateInstance(ptr));
     if (!pModule){
         TerminateApplication(" Module Interface --> Bad\n");
         return false;
@@ -249,7 +256,7 @@ DWORD WINAPI ADCDataReader::ServiceReadThread()
         // цикл сбора данных
         i = 0x1;
         m_samples_count = 0;
-        while (is_acq_started || m_samples_count >= m_samples_number){
+        while (is_acq_started && m_samples_count <= m_samples_number){
             //for (i = 0x1; i < NBlockRead; i++)
             //{
 
@@ -258,17 +265,23 @@ DWORD WINAPI ADCDataReader::ServiceReadThread()
             if (!pModule->ReadData(ReadBuffer + i*DataStep, &DataStep, &BytesTransferred[RequestNumber], &ReadOv[RequestNumber]))
                 if (GetLastError() != ERROR_IO_PENDING) {
                     ThreadErrorNumber = 0x2;
-                    break;
+                    continue;
+                    //break;
                 }
 
             // ждём окончания операции сбора очередной порции данных
-            if (!WaitingForRequestCompleted(&ReadOv[RequestNumber ^ 0x1]))
-                break;
+            if (!WaitingForRequestCompleted(&ReadOv[RequestNumber ^ 0x1])){
+                continue;
+                //break;
+            }
             printf("ACQ is ok\n");
+
+            Counter++;
+            i++;
+
             //if (i == NBlockRead - 1){
-            if (i == 2){
-                WaitForSingleObject(hMutex, INFINITE);
-                for (int k = 0; k < DataStep*i; k += MaxVirtualSoltsQuantity){
+            if ( i == NBlockRead ){
+                for (int k = 0; k < DataStep * i; k += MaxVirtualSoltsQuantity){
                     data[0].push_back(ReadBuffer[k]);
                     data[1].push_back(ReadBuffer[k+1]);
                     data[2].push_back(ReadBuffer[k+2]);
@@ -276,15 +289,19 @@ DWORD WINAPI ADCDataReader::ServiceReadThread()
                 }
                 if (ReadBuffer == ReadBuffer1){
                     ReadBuffer = ReadBuffer2;
+                    memset(ReadBuffer2, 0, NBlockRead * DataStep );
                     i = 0x1;
                 }
                 else{
                     ReadBuffer = ReadBuffer1;
+                    memset(ReadBuffer1, 0, NBlockRead * DataStep );
                     i = 0x1;
                 }
-                m_samples_count = data[0].size();
-                ReleaseMutex(hMutex);
-
+                m_samples_count += data[0].size();
+                emit sendACQData(data);
+                for(int k=0 ; k < 4; k++)
+                    data[k].clear();
+                i = 0x1;
             }
 
             //			if(WaitForSingleObject(ReadEvent[!RequestNumber], TimeOut) == WAIT_TIMEOUT)
@@ -297,8 +314,7 @@ DWORD WINAPI ADCDataReader::ServiceReadThread()
                 break;
                 }
                 else Sleep(20);*/
-            Counter++;
-            i++;
+
             //}
         }
 
@@ -337,25 +353,32 @@ DWORD WINAPI ADCDataReader::ServiceReadThread()
 bool ADCDataReader::WaitingForRequestCompleted(OVERLAPPED *ReadOv)
 {
     DWORD ReadBytesTransferred;
-
+    int count = 100;
     while (true)
     {
-        if (GetOverlappedResult(ModuleHandle, ReadOv, &ReadBytesTransferred, FALSE))
+        if (GetOverlappedResult(ModuleHandle, ReadOv, &ReadBytesTransferred, FALSE)){
             break;
-        else if (GetLastError() != ERROR_IO_INCOMPLETE) {
-            ThreadErrorNumber = 0x3;
-            return false;
         }
-        /*else
-            if (kbhit()){
-            ThreadErrorNumber = 0x1;
-            return false;
-            }*/
         else
-            Sleep(20);
+            if (GetLastError() != ERROR_IO_INCOMPLETE) {
+                ThreadErrorNumber = 0x3;
+                return false;
+            }
+            else{
+                count--;
+                //if (kbhit()){
+                if(count == 0){
+                    ThreadErrorNumber = 0x1;
+                    return false;
+                }
+                //}
+                else
+                    Sleep(20);
+            }
     }
     return true;
 }
+
 int ADCDataReader::getSamples_number() const
 {
     return m_samples_number;
@@ -432,31 +455,16 @@ void ADCDataReader::TerminateApplication(QString ErrorString, bool TerminationFl
         pModule = NULL;
     }
 
-    // освобождаем занятые ресурсы
-    /*if (ReadBuffer) {
-        delete[] ReadBuffer;
-        ReadBuffer = NULL;
-        }*/
     // освободим идентификатор потока сбора данных
     if (hReadThread) {
         CloseHandle(hReadThread);
         hReadThread = NULL;
     }
-    // освободим идентификатор файла данных
-    /*if (hFile != INVALID_HANDLE_VALUE) {
-        CloseHandle(hFile);
-        hFile = INVALID_HANDLE_VALUE;
-    }*/
 
     // выводим текст сообщения
     if ( ErrorString.length() > 0 )
         printf("%s",ErrorString.toStdString().c_str());
-    /*if (ErrorString)
-        printf(ErrorString);*/
 
-    // если нужно - аварийно завершаем программу
-    /*if (TerminationFlag)
-        exit(1);*/
     else return;
 }
 
@@ -467,16 +475,12 @@ void ADCDataReader::startACQ()
     // сбросим флаг ошибок потока ввода данных
     ThreadErrorNumber = 0x0;
 
-    // попробуем выделить память под буфер для вводимых с модуля данных
-    //ReadBuffer = new SHORT[NBlockRead * DataStep];
-
     ReadBuffer = ReadBuffer1;
 
     if (!ReadBuffer)
         TerminateApplication(" Cannot allocate memory for ReadBuffer\n");
 
     // Создаем и запускаем поток сбора ввода данных из модуля
-    //	hReadThread = CreateThread(0, 0x2000, &ADCDataReader::ServiceReadThread, 0, 0, &ReadTid);
     is_acq_started = true;
     hReadThread = CreateThread(0, 0x2000, runACQ, (void *)this, 0, &ReadTid);
     if (!hReadThread)
@@ -490,45 +494,13 @@ void ADCDataReader::startACQ()
 void ADCDataReader::stopACQ()
 {
     is_acq_started = false;
-
-    /*while (!IsThreadComplete){
-        if (OldCounter != Counter){
-            printf(" Counter %3u from %3u\r", Counter, NBlockRead);
-            OldCounter = Counter;
-        }
-        else
-            Sleep(20);
-    }*/
+    if ( pModule != NULL )
+        pModule->STOP_READ();
 
     // ждём окончания работы потока ввода данных
     WaitForSingleObject(hReadThread, INFINITE);
     // две пустые строчки
     printf("\n\n");
-    /*FILE *out;
-    out = fopen("out.txt", "w");
-    for (int i = 0; i < NBlockRead * DataStep; i++){
-        fprintf(out, "%d ", ReadBuffer[i]);
-        if (i % 4 == 0 && i != 0)
-            fprintf(out, "\n");
-    }*/
-    // если не было ошибок ввода данных - запишем полученные данные в файл
-    /*if (!ThreadErrorNumber)
-    {
-    // откроем файл для записи полученных данных
-    hFile = CreateFile("Test.dat", GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, 0, NULL);
-    if (hFile == INVALID_HANDLE_VALUE) TerminateApplication(" Open file 'Test.dat' --> Failed!!!\n");
-    else printf(" CreateFile(Test.dat) --> Ok\n");
-
-    // теперь запишем в файл полученные данные
-    DWORD FileBytesWritten = 0x0;
-    if (!WriteFile(hFile,							// handle to file to write to
-    ReadBuffer,						// pointer to data to write to file
-    2 * NBlockRead*DataStep,		// number of bytes to write
-    &FileBytesWritten,			// pointer to number of bytes written
-    NULL			  					// pointer to structure needed for overlapped I/O
-    ))  TerminateApplication(" WriteFile(Test.dat) --> Failed!!!");
-    else printf(" WriteFile(Test.dat) --> Ok\n");
-    }*/
 
     // если была ошибка - сообщим об этом
     if (ThreadErrorNumber) {
@@ -543,6 +515,7 @@ void ADCDataReader::stopACQ()
 
 bool ADCDataReader::isReady()
 {
+    return true;
     if( initADC()){
         TerminateApplication("On test init");
         return true;
@@ -551,13 +524,13 @@ bool ADCDataReader::isReady()
 
 }
 
-std::vector<std::vector<short>> ADCDataReader::getACQData()
+AdcDataMatrix ADCDataReader::getACQData()
 {
-    std::vector<std::vector<short>> tmp_data;
-    WaitForSingleObject(hMutex, INFINITE);
+    AdcDataMatrix tmp_data;
+    //WaitForSingleObject(hMutex, INFINITE);
     tmp_data = data;
     for (int i = 0; i < data.size(); i++)
         data[i].clear();
-    ReleaseMutex(hMutex);
+    // ReleaseMutex(hMutex);
     return tmp_data;
 }

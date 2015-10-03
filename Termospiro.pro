@@ -56,7 +56,8 @@ HEADERS  += \
     tools/tsvalidationtools.h \
     ADCDataReader.h \
     rawdataparser.h \
-    plotter.h
+    plotter.h \
+    src/datatypes.h
 
 FORMS    += \
     colibrateDialog.ui \

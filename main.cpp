@@ -1,9 +1,11 @@
 #include <QApplication>
 #include "tscontroller.h"
+#include "src/datatypes.h"
 
 int main(int argc, char *argv[])
 {
     QApplication a(argc, argv);
+    qRegisterMetaType<AdcDataMatrix>("AdcDataMatrix");
     TSController* controller = new TSController;
     freopen("output.txt","w",stdout);
     //setWindowFlags(Qt::WindowTitleHint | Qt::WindowMinimizeButtonHint);

@@ -2,6 +2,8 @@
 #define RAWDATAPARSER_H
 
 #include <QObject>
+#include <QVector>
+#include "src/datatypes.h"
 
 class RawDataParser : public QObject
 {
@@ -11,9 +13,9 @@ public:
 
 signals:
     void changeProgress(int);
-    void sendNewData(QVector<double>,QVector<double>,QVector<double>);
+    void sendNewData(QVector<int>, QVector<int>, QVector<int>);
 public slots:
-    void  setACQData(std::vector<std::vector<short>>);
+    void  setACQData(AdcDataMatrix data);
 };
 
 #endif // RAWDATAPARSER_H

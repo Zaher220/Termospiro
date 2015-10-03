@@ -7,6 +7,8 @@
 #include <math.h>
 #include <vector>
 #include "Rtusbapi.h"
+#include "src/datatypes.h"
+
 
 class ADCDataReader: public QObject
 {
@@ -16,7 +18,7 @@ public:
     ~ADCDataReader();
     DWORD WINAPI ServiceReadThread();
 
-    std::vector<std::vector<short>> getACQData();
+    AdcDataMatrix getACQData();
     int getSamples_number() const;
     void setSamples_number(int samples_number);
     bool isReady();
@@ -25,7 +27,7 @@ public slots:
     void stopACQ();
 
 signals:
-    void sendACQData(std::vector<std::vector<short>>);
+    void sendACQData(AdcDataMatrix);
     void done();
     void changeProgress(int);
 private:
@@ -72,7 +74,7 @@ private:
     //Число каналов
     const DWORD ChannaleQuantity = 0x4;
     // столько блоков по DataStep отсчётов нужно собрать в файл
-    const WORD NBlockRead = 20;
+    const WORD NBlockRead = 10;
     // указатель на буфер для вводимых данных
     SHORT	*ReadBuffer;
     SHORT	*ReadBuffer1, *ReadBuffer2;
@@ -85,9 +87,12 @@ private:
     // флажок завершения потоков ввода данных
     bool IsThreadComplete = false;
 
+    char mod_name[8];
+
+
     HANDLE hMutex ;
-    int m_samples_number = 0;
+    int m_samples_number = 1800000;
     int m_samples_count = 0;
-    std::vector<std::vector<short>> data = std::vector<std::vector<short>>(MaxVirtualSoltsQuantity);
+    AdcDataMatrix data = AdcDataMatrix(MaxVirtualSoltsQuantity);
 };
 #endif
