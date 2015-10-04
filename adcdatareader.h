@@ -8,6 +8,7 @@
 #include <vector>
 #include "Rtusbapi.h"
 #include "src/datatypes.h"
+#include <QDebug>
 
 
 class ADCDataReader: public QObject
@@ -66,15 +67,16 @@ private:
     //const WORD MaxVirtualSoltsQuantity = 127;
     const WORD MaxVirtualSoltsQuantity = 4;
     // частота  ввода данных
-    const double ReadRate = 0.6;/*150Hz per channel*/
-    //const double ReadRate = 1.0;
+    //const double ReadRate = 0.6;/*150Hz per channel*/
+    const double ReadRate = 2.048;
     //max возможное кол-во передаваемых отсчетов (кратное 32) для ф. ReadData и WriteData()
     //DWORD DataStep = 1024 * 1024;
-    DWORD DataStep = 512;
+    DWORD DataStep = 4096;
+    //DWORD DataStep = 512;
     //Число каналов
     const DWORD ChannaleQuantity = 0x4;
     // столько блоков по DataStep отсчётов нужно собрать в файл
-    const WORD NBlockRead = 10;
+    const WORD NBlockRead = 2;
     // указатель на буфер для вводимых данных
     SHORT	*ReadBuffer;
     SHORT	*ReadBuffer1, *ReadBuffer2;

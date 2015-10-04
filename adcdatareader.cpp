@@ -265,14 +265,14 @@ DWORD WINAPI ADCDataReader::ServiceReadThread()
             if (!pModule->ReadData(ReadBuffer + i*DataStep, &DataStep, &BytesTransferred[RequestNumber], &ReadOv[RequestNumber]))
                 if (GetLastError() != ERROR_IO_PENDING) {
                     ThreadErrorNumber = 0x2;
-                    continue;
-                    //break;
+                   // continue;
+                    break;
                 }
-
+            qDebug()<<DataStep;
             // ждём окончания операции сбора очередной порции данных
             if (!WaitingForRequestCompleted(&ReadOv[RequestNumber ^ 0x1])){
-                continue;
-                //break;
+                //continue;
+                break;
             }
             printf("ACQ is ok\n");
 
@@ -367,12 +367,12 @@ bool ADCDataReader::WaitingForRequestCompleted(OVERLAPPED *ReadOv)
             else{
                 count--;
                 //if (kbhit()){
-                if(count == 0){
-                    ThreadErrorNumber = 0x1;
-                    return false;
-                }
+//                if(count == 0){
+//                    ThreadErrorNumber = 0x1;
+//                    return false;
+//                }
                 //}
-                else
+                //else
                     Sleep(20);
             }
     }
@@ -496,6 +496,7 @@ void ADCDataReader::stopACQ()
     is_acq_started = false;
     if ( pModule != NULL )
         pModule->STOP_READ();
+    TerminateApplication("fuck");
 
     // ждём окончания работы потока ввода данных
     WaitForSingleObject(hReadThread, INFINITE);
