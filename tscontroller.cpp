@@ -126,7 +126,7 @@ TSController::TSController(QWidget *parent):QMainWindow(parent)//,ui(new Ui::TSV
     ui.mainBox->setCurrentIndex(0);
     m_plotter.setUi(&ui);
     m_plotter.setParentWindow(this);
-    connect(&m_plotter, SIGNAL(stopACQU()), &m_adc_reader, SLOT(stopACQ()));
+    connect(&m_plotter, SIGNAL(stopACQU()), &m_adc_reader, SLOT(stopADC()));
 
 
     //connect(ui.backExamButton, SIGNAL(clicked()), this, SLOT(on_pressBuckButton()));
@@ -287,7 +287,7 @@ void TSController::calibrateVolume(){
     dui.acceptButton->setVisible(false);
 
     m_adc_reader.setSamples_number(1250);
-    m_adc_reader.startACQ();
+    m_adc_reader.startADC(0);
 
     if(d.exec()==1){
         settings.setValue("volZero",curveBuffer.volumeColibration());
@@ -295,12 +295,12 @@ void TSController::calibrateVolume(){
         dui.progressBar->setVisible(false);
         dui.acceptButton->setVisible(true);
     }
-    m_adc_reader.stopACQ();
+    m_adc_reader.stopADC();
 
 
     d.exec();
 
-    m_adc_reader.startACQ();
+    m_adc_reader.startADC(0);
     m_plotter.startCPlottingTimer(100);
 }
 
@@ -336,7 +336,7 @@ void TSController::startExam()
     ui.toutInfolabel->setVisible(true);
     curveBuffer.clean();
 
-    m_adc_reader.startACQ();
+    m_adc_reader.startADC(0);
 
     myTimer.start();
     m_plotter.setRecordingStarted(true);
@@ -366,7 +366,7 @@ void TSController::stopExam()
     {
         m_plotter.stopPlottingTimer();
 
-        m_adc_reader.stopACQ();
+        m_adc_reader.stopADC();
 
         qDebug()<<"Stop exam";
         QSqlRecord record = examinationsModel->record();
@@ -637,13 +637,13 @@ void TSController::breakExam()
 {
     //    qDebug()<<"TSController::breakExam";
     m_plotter.stopPlottingTimer();
-    m_adc_reader.stopACQ();
+    m_adc_reader.stopADC();
 }
 
 void TSController::processDataParams(){
     //    qDebug()<<"TSController::processDataParams";
     qDebug()<<"this is result button !";
-    QTableWidget *qtw = ui.resultsTable;
+    /*QTableWidget *qtw = ui.resultsTable;
     qtw->setColumnCount(2);
     qtw->setRowCount(12);
     qtw->verticalHeader()->setVisible(false);
@@ -713,7 +713,7 @@ void TSController::processDataParams(){
 
     qtw->removeRow(0);
     qtw->show();
-    delete vs;
+    delete vs;*/
 }
 
 void TSController::deletePatient(int index){
@@ -866,7 +866,7 @@ void TSController::printReport()
 }
 
 void TSController::closeEvent(QCloseEvent *e){
-    m_adc_reader.stopACQ();
+    m_adc_reader.stopADC();
     e->accept();
 }
 

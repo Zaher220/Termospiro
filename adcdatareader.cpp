@@ -1,10 +1,10 @@
 #include "ADCDataReader.h"
 
-DWORD WINAPI runACQ(void* Param)
+/*DWORD WINAPI runACQ(void* Param)
 {
     ADCDataReader* This = (ADCDataReader*)Param;
     return This->ServiceReadThread();
-}
+}*/
 
 ADCDataReader::ADCDataReader(QObject *parent):QObject(parent)
 {
@@ -13,13 +13,12 @@ ADCDataReader::ADCDataReader(QObject *parent):QObject(parent)
 
     ReadBuffer1 = new SHORT[NBlockRead * DataStep];
     ReadBuffer2 = new SHORT[NBlockRead * DataStep];
-    //hMutex = CreateMutex(NULL, FALSE, "reader");
 }
 
 ADCDataReader::~ADCDataReader()
 {
-    if (is_acq_started)
-        stopACQ();
+    /*if (is_acq_started)
+        stopADC();*/
     delete[] ReadBuffer1;
     delete[] ReadBuffer2;
 }
@@ -210,152 +209,14 @@ bool ADCDataReader::initADC()
     return true;
 }
 
-DWORD WINAPI ADCDataReader::ServiceReadThread()
-{
-    WORD i;
-    // номер запроса на сбор данных
-    WORD RequestNumber;
-    // идентификатор массива их двух событий
-    HANDLE ReadEvent[2];
-    // массив OVERLAPPED структур из двух элементов
-    OVERLAPPED ReadOv[2];
-
-    DWORD BytesTransferred[2];
-    //	DWORD TimeOut;
-
-    // остановим ввод данных и одновременно прочистим соответствующий канал bulk USB
-    if (!pModule->STOP_READ()) {
-        ThreadErrorNumber = 0x6;
-        IsThreadComplete = true;
-        return 0;
-    }
-
-    // создадим два события
-    ReadEvent[0] = CreateEvent(NULL, FALSE, FALSE, NULL);
-    memset(&ReadOv[0], 0, sizeof(OVERLAPPED)); ReadOv[0].hEvent = ReadEvent[0];
-    ReadEvent[1] = CreateEvent(NULL, FALSE, FALSE, NULL);
-    memset(&ReadOv[1], 0, sizeof(OVERLAPPED)); ReadOv[1].hEvent = ReadEvent[1];
-
-    // таймаут ввода данных
-    //	TimeOut = (DWORD)(DataStep/ReadRate + 1000);
-
-    // делаем предварительный запрос на ввод данных
-    RequestNumber = 0x0;
-    if (!pModule->ReadData(ReadBuffer, &DataStep, &BytesTransferred[RequestNumber], &ReadOv[RequestNumber]))
-        if (GetLastError() != ERROR_IO_PENDING) {
-            CloseHandle(ReadEvent[0]);
-            CloseHandle(ReadEvent[1]);
-            ThreadErrorNumber = 0x2;
-            IsThreadComplete = true;
-            return 0;
-        }
-
-    // теперь запускаем ввод данных
-    if (pModule->START_READ())
-    {
-        // цикл сбора данных
-        i = 0x1;
-        m_samples_count = 0;
-        while (is_acq_started && m_samples_count <= m_samples_number){
-            //for (i = 0x1; i < NBlockRead; i++)
-            //{
-
-            RequestNumber ^= 0x1;
-            // сделаем запрос на очередную порции данных
-            if (!pModule->ReadData(ReadBuffer + i*DataStep, &DataStep, &BytesTransferred[RequestNumber], &ReadOv[RequestNumber]))
-                if (GetLastError() != ERROR_IO_PENDING) {
-                    ThreadErrorNumber = 0x2;
-                   // continue;
-                    break;
-                }
-            qDebug()<<DataStep;
-            // ждём окончания операции сбора очередной порции данных
-            if (!WaitingForRequestCompleted(&ReadOv[RequestNumber ^ 0x1])){
-                //continue;
-                break;
-            }
-            printf("ACQ is ok\n");
-
-            Counter++;
-            i++;
-
-            //if (i == NBlockRead - 1){
-            if ( i == NBlockRead ){
-                for (int k = 0; k < DataStep * i; k += MaxVirtualSoltsQuantity){
-                    data[0].push_back(ReadBuffer[k]);
-                    data[1].push_back(ReadBuffer[k+1]);
-                    data[2].push_back(ReadBuffer[k+2]);
-                    data[3].push_back(ReadBuffer[k+3]);
-                }
-                if (ReadBuffer == ReadBuffer1){
-                    ReadBuffer = ReadBuffer2;
-                    memset(ReadBuffer2, 0, NBlockRead * DataStep );
-                    i = 0x1;
-                }
-                else{
-                    ReadBuffer = ReadBuffer1;
-                    memset(ReadBuffer1, 0, NBlockRead * DataStep );
-                    i = 0x1;
-                }
-                m_samples_count += data[0].size();
-                emit sendACQData(data);
-                for(int k=0 ; k < 4; k++)
-                    data[k].clear();
-                i = 0x1;
-            }
-
-            //			if(WaitForSingleObject(ReadEvent[!RequestNumber], TimeOut) == WAIT_TIMEOUT)
-            //				            		{ ThreadErrorNumber = 0x3; break; }
-
-            /*if (ThreadErrorNumber)
-                break;
-                else if (kbhit()) {
-                ThreadErrorNumber = 0x1;
-                break;
-                }
-                else Sleep(20);*/
-
-            //}
-        }
-
-        // ждём окончания операции сбора последней порции данных
-        if (!ThreadErrorNumber)
-        {
-            RequestNumber ^= 0x1;
-            WaitingForRequestCompleted(&ReadOv[RequestNumber ^ 0x1]);
-            //			if(WaitForSingleObject(ReadEvent[!RequestNumber], TimeOut) == WAIT_TIMEOUT) ThreadErrorNumber = 0x3;
-            Counter++;
-        }
-    }
-    else {
-        ThreadErrorNumber = 0x5;
-    }
-
-    // остановим ввод данных
-    if (!pModule->STOP_READ())
-        ThreadErrorNumber = 0x6;
-    // если надо, то прервём незавершённый асинхронный запрос
-    if (!CancelIo(pModule->GetModuleHandle()))
-        ThreadErrorNumber = 0x7;
-    // освободим все идентификаторы событий
-    for (i = 0x0; i < 0x2; i++)
-        CloseHandle(ReadEvent[i]);
-    // небольшая задержка
-    Sleep(100);
-    // установим флажок окончания потока сбора данных
-    IsThreadComplete = true;
-    // теперь можно воходить из потока сбора данных
-    is_acq_started = false;
-    return 0;
-}
-
-
 bool ADCDataReader::WaitingForRequestCompleted(OVERLAPPED *ReadOv)
 {
     DWORD ReadBytesTransferred;
     int count = 100;
     while (true)
     {
+        if ( !is_acq_started )
+            return false;
         if (GetOverlappedResult(ModuleHandle, ReadOv, &ReadBytesTransferred, FALSE)){
             break;
         }
@@ -367,13 +228,13 @@ bool ADCDataReader::WaitingForRequestCompleted(OVERLAPPED *ReadOv)
             else{
                 count--;
                 //if (kbhit()){
-//                if(count == 0){
-//                    ThreadErrorNumber = 0x1;
-//                    return false;
-//                }
+                //                if(count == 0){
+                //                    ThreadErrorNumber = 0x1;
+                //                    return false;
+                //                }
                 //}
                 //else
-                    Sleep(20);
+                Sleep(20);
             }
     }
     return true;
@@ -468,8 +329,25 @@ void ADCDataReader::TerminateApplication(QString ErrorString, bool TerminationFl
     else return;
 }
 
-void ADCDataReader::startACQ()
+void ADCDataReader::startADC(int samples_number)
 {
+    is_acq_started = true;
+
+    if( m_thread != nullptr ){
+        if ( m_thread->isRunning() ){
+            m_thread->terminate();
+            //delete m_thread;
+            m_thread = nullptr;
+        }
+    }
+    m_thread = new QThread();
+    this->moveToThread(m_thread);
+
+    connect(m_thread, SIGNAL(started()), this, SLOT(processADC()));
+    connect(this, SIGNAL(finished()), m_thread, SLOT(quit()));
+    //connect(this, SIGNAL(finished()), this, SLOT(deleteLater()));
+    //connect(m_thread, SIGNAL(finished()), m_thread, SLOT(deleteLater()));
+
     initADC();
 
     // сбросим флаг ошибок потока ввода данных
@@ -477,52 +355,174 @@ void ADCDataReader::startACQ()
 
     ReadBuffer = ReadBuffer1;
 
-    if (!ReadBuffer)
-        TerminateApplication(" Cannot allocate memory for ReadBuffer\n");
-
     // Создаем и запускаем поток сбора ввода данных из модуля
-    is_acq_started = true;
-    hReadThread = CreateThread(0, 0x2000, runACQ, (void *)this, 0, &ReadTid);
-    if (!hReadThread)
-        TerminateApplication("Can't start input data thread!");
 
-    // ждем завершения работы нужного потока
-    printf("\n");
 
+    m_thread->start();
 }
 
-void ADCDataReader::stopACQ()
+void ADCDataReader::stopADC()
 {
     is_acq_started = false;
-    if ( pModule != NULL )
-        pModule->STOP_READ();
-    TerminateApplication("fuck");
 
-    // ждём окончания работы потока ввода данных
-    WaitForSingleObject(hReadThread, INFINITE);
-    // две пустые строчки
-    printf("\n\n");
+    /*if ( pModule != NULL )
+        pModule->STOP_READ();*/
+
+    if ( m_thread != nullptr ){
+        m_thread->quit();
+        m_thread->wait();
+    }
+
+    // подчищаем интерфейс модуля
+    if (pModule != NULL){
+        // освободим интерфейс модуля
+        if (!pModule->ReleaseInstance())
+            printf(" ReleaseInstance() --> Bad\n");
+        else
+            printf(" ReleaseInstance() --> OK\n");
+        // обнулим указатель на интерфейс модуля
+        pModule = NULL;
+    }
+
+
+
+    //TerminateApplication("fuck");
+
 
     // если была ошибка - сообщим об этом
-    if (ThreadErrorNumber) {
+    /*if (ThreadErrorNumber) {
         TerminateApplication(NULL, false);
         ShowThreadErrorMessage();
     }
     else {
         printf("\n");
         TerminateApplication("\n The program was completed successfully!!!\n", false);
-    }
+    }*/
 }
 
-bool ADCDataReader::isReady()
+void ADCDataReader::processADC()
 {
-    return true;
-    if( initADC()){
-        TerminateApplication("On test init");
-        return true;
-    }else
-        return false;
+    WORD i;
+    // номер запроса на сбор данных
+    WORD RequestNumber;
+    // идентификатор массива их двух событий
+    HANDLE ReadEvent[2];
+    // массив OVERLAPPED структур из двух элементов
+    OVERLAPPED ReadOv[2];
 
+    DWORD BytesTransferred[2];
+    //	DWORD TimeOut;
+
+    // остановим ввод данных и одновременно прочистим соответствующий канал bulk USB
+    if (!pModule->STOP_READ()) {
+        ThreadErrorNumber = 0x6;
+        IsThreadComplete = true;
+        emit finished();
+        return;
+    }
+
+    // создадим два события
+    ReadEvent[0] = CreateEvent(NULL, FALSE, FALSE, NULL);
+    memset(&ReadOv[0], 0, sizeof(OVERLAPPED)); ReadOv[0].hEvent = ReadEvent[0];
+    ReadEvent[1] = CreateEvent(NULL, FALSE, FALSE, NULL);
+    memset(&ReadOv[1], 0, sizeof(OVERLAPPED)); ReadOv[1].hEvent = ReadEvent[1];
+
+    // таймаут ввода данных
+    //	TimeOut = (DWORD)(DataStep/ReadRate + 1000);
+
+    // делаем предварительный запрос на ввод данных
+    RequestNumber = 0x0;
+    if (!pModule->ReadData(ReadBuffer, &DataStep, &BytesTransferred[RequestNumber], &ReadOv[RequestNumber]))
+        if (GetLastError() != ERROR_IO_PENDING) {
+            CloseHandle(ReadEvent[0]);
+            CloseHandle(ReadEvent[1]);
+            ThreadErrorNumber = 0x2;
+            IsThreadComplete = true;
+            emit finished();
+            return;
+        }
+
+    // теперь запускаем ввод данных
+    if (pModule->START_READ())
+    {
+        // цикл сбора данных
+        i = 0x1;
+        m_samples_count = 0;
+        while (is_acq_started && m_samples_count <= m_samples_number){
+            //for (i = 0x1; i < NBlockRead; i++)
+            //{
+
+            RequestNumber ^= 0x1;
+            // сделаем запрос на очередную порции данных
+            if (!pModule->ReadData(ReadBuffer + i*DataStep, &DataStep, &BytesTransferred[RequestNumber], &ReadOv[RequestNumber]))
+                if (GetLastError() != ERROR_IO_PENDING) {
+                    ThreadErrorNumber = 0x2;
+                    // continue;
+                    break;
+                }
+            // ждём окончания операции сбора очередной порции данных
+            if (!WaitingForRequestCompleted(&ReadOv[RequestNumber ^ 0x1])){
+                //continue;
+                break;
+            }
+
+            i++;
+
+            if ( i == NBlockRead ){
+                for (int k = 0; k < DataStep * i; k += MaxVirtualSoltsQuantity){
+                    data[0].push_back(ReadBuffer[k]);
+                    data[1].push_back(ReadBuffer[k+1]);
+                    data[2].push_back(ReadBuffer[k+2]);
+                    data[3].push_back(ReadBuffer[k+3]);
+                }
+                if (ReadBuffer == ReadBuffer1){
+                    ReadBuffer = ReadBuffer2;
+                    memset(ReadBuffer2, 0, NBlockRead * DataStep );
+                    //i = 0x1;//почему не равно нулю
+                    i = 0x0;
+                }
+                else{
+                    ReadBuffer = ReadBuffer1;
+                    memset(ReadBuffer1, 0, NBlockRead * DataStep );
+                    //i = 0x1;//почему не равно нулю
+                    i = 0x0;
+                }
+                m_samples_count += data[0].size();
+                emit sendACQData(data);
+                for(int k=0 ; k < 4; k++)
+                    data[k].clear();
+                //i = 0x1;//почему не равно нулю
+                i = 0x0;
+            }
+        }
+
+        // ждём окончания операции сбора последней порции данных
+        if (!ThreadErrorNumber)
+        {
+            RequestNumber ^= 0x1;
+            WaitingForRequestCompleted(&ReadOv[RequestNumber ^ 0x1]);
+        }
+    }
+    else {
+        ThreadErrorNumber = 0x5;
+    }
+
+    // остановим ввод данных
+    if (!pModule->STOP_READ())
+        ThreadErrorNumber = 0x6;
+    // если надо, то прервём незавершённый асинхронный запрос
+    if (!CancelIo(pModule->GetModuleHandle()))
+        ThreadErrorNumber = 0x7;
+    // освободим все идентификаторы событий
+    for (i = 0x0; i < 0x2; i++)
+        CloseHandle(ReadEvent[i]);
+    // небольшая задержка
+    Sleep(100);
+    // установим флажок окончания потока сбора данных
+    IsThreadComplete = true;
+    // теперь можно воходить из потока сбора данных
+    emit finished();
+    return;
 }
 
 AdcDataMatrix ADCDataReader::getACQData()
@@ -534,4 +534,15 @@ AdcDataMatrix ADCDataReader::getACQData()
         data[i].clear();
     // ReleaseMutex(hMutex);
     return tmp_data;
+}
+
+bool ADCDataReader::isReady()
+{
+    return true;
+    if( initADC()){
+        TerminateApplication("On test init");
+        return true;
+    }else
+        return false;
+
 }

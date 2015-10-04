@@ -9,6 +9,7 @@
 #include "Rtusbapi.h"
 #include "src/datatypes.h"
 #include <QDebug>
+#include <QThread>
 
 
 class ADCDataReader: public QObject
@@ -17,17 +18,19 @@ class ADCDataReader: public QObject
 public:
     explicit ADCDataReader(QObject *parent = 0);
     ~ADCDataReader();
-    DWORD WINAPI ServiceReadThread();
-
     AdcDataMatrix getACQData();
     int getSamples_number() const;
     void setSamples_number(int samples_number);
     bool isReady();
-public slots:
-    void startACQ();
-    void stopACQ();
 
+public slots:
+    void startADC(int samples_number);
+    void stopADC();
+    void processADC();
 signals:
+    void finished();
+
+
     void sendACQData(AdcDataMatrix);
     void done();
     void changeProgress(int);
@@ -71,7 +74,7 @@ private:
     const double ReadRate = 2.048;
     //max возможное кол-во передаваемых отсчетов (кратное 32) для ф. ReadData и WriteData()
     //DWORD DataStep = 1024 * 1024;
-    DWORD DataStep = 4096;
+    DWORD DataStep = 8192;
     //DWORD DataStep = 512;
     //Число каналов
     const DWORD ChannaleQuantity = 0x4;
@@ -96,5 +99,6 @@ private:
     int m_samples_number = 1800000;
     int m_samples_count = 0;
     AdcDataMatrix data = AdcDataMatrix(MaxVirtualSoltsQuantity);
+    QThread *m_thread = nullptr;
 };
 #endif
