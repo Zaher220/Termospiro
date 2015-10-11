@@ -506,7 +506,7 @@ void TSController::createNewExam(){
         m_plotter.resetPlotting();
         curveBuffer.clean();
         curveBuffer.setEnd(0);
-        curveBuffer.setLenght(0);
+        //curveBuffer.setLenght(0);
         m_plotter.setMaxcVol(0);
         m_plotter.plotCalibration();
     }else{
@@ -525,24 +525,28 @@ void TSController::openExam(QModelIndex ind)
 {
     // qDebug()<<"TSController::openExam";
     QSqlRecord record = examinationsModel->record(ind.row());
-    int volume[18000],tempin[18000], tempout[18000];
+    //int volume[18000],tempin[18000], tempout[18000];
+    QVector<int> volume,tempin, tempout;
     int i;
     QStringList list = record.value("volume").toString().split(";");
-    for(i=0;i<list.count();i++)
+    for(i = 0; i < list.count(); i++)
     {
-        volume[i] = list.at(i).toInt();
+        volume.push_back(list.at(i).toInt());
     }
     list = record.value("tempIn").toString().split(";");
     for(i=0;i<list.count();i++)
     {
-        tempin[i] = list.at(i).toInt();
+        tempin.push_back(list.at(i).toInt());
     }
     list = record.value("tempOut").toString().split(";");
     for(i=0;i<list.count();i++)
     {
-        tempout[i] = list.at(i).toInt();
+        tempout.push_back(list.at(i).toInt());
     }
-    curveBuffer.setValues(volume,tempin,tempout,list.count());
+    //curveBuffer.setValues(volume, tempin, tempout, list.count());
+
+    curveBuffer.appendData(volume, tempin, tempout);
+
     curveBuffer.setVolumeColibration(record.value("volZero").toInt(),false);
 
     qDebug()<<"setVolumeConverts openExam "<<record.value("volOut").toInt()<<" "<<record.value("volIn").toInt();
@@ -744,7 +748,7 @@ void TSController::printReport()
     QPrintDialog *dialog = new QPrintDialog(&printer, this);
     dialog->setWindowTitle(tr("Предварительный просмотр"));
 
-    int endIndex=curveBuffer.lenght;
+    int endIndex=curveBuffer.getLenght();
 
     float listh=printer.widthMM()*printer.resolution()/25.4-60;
     float listw=printer.heightMM()*printer.resolution()/25.4-60;
@@ -839,7 +843,7 @@ void TSController::printReport()
     QVector<int> tempIn = curveBuffer.tempInVector();
     QVector<int> tempOut = curveBuffer.tempOutVector();
     i=0;
-    int k=ceil((float)curveBuffer.lenght/pf.gTempIn->width());
+    int k=ceil((float)curveBuffer.getLenght()/pf.gTempIn->width());
     for(j=0;j<myW-35;j+=1)
     {
         if(i>=k*endIndex)break;

@@ -8,13 +8,15 @@ TSCurveBuffer::TSCurveBuffer(QObject *parent) :QObject(parent){
     ts_tempIn.resize(18000);
     ts_tempOut.resize(18000);
     ts_integral.resize(18000);
-    lenght=0;
+
     ts_end = -1;
     ts_volumeColibration = 0;
     ts_volumePosConvert=1;
     ts_volumeNegConvert=-1;
     max_v=-1100000;
     min_v=10000;
+    //moveToThread(m_thread);
+    //m_thread.start();
 }
 
 TSCurveBuffer::~TSCurveBuffer(){
@@ -25,7 +27,7 @@ int TSCurveBuffer::end(){
 }
 
 void TSCurveBuffer::append(int v, int tI, int tO, bool realtime){
-    lenght++;
+
     if(ts_end == 17999){
         emit overflowed();
         return;
@@ -88,7 +90,7 @@ void TSCurveBuffer::append(int v, int tI, int tO, bool realtime){
         ts_tempIn[ts_end] = segs.curTin = tI;
         ts_tempOut[ts_end] = segs.curTout = tO;
     }
-    emit changed(segs);
+    //emit changed(segs);
     /*if(realtime && ts_end > 0){
         paramcalc.addData(ts_tempIn[ts_end], ts_tempOut[ts_end], ts_integral[ts_end]);
         if ( ts_end%100 == 0 ){
@@ -100,18 +102,12 @@ void TSCurveBuffer::append(int v, int tI, int tO, bool realtime){
     ts_end++;
 }
 
-void TSCurveBuffer::setValues(int *vol, int *tin, int *tout, int n){
-    for(int i=0;i<n;i++)
-        append(vol[i],tin[i],tout[i],false);
-}
-
 void TSCurveBuffer::setVolumeColibration(int c, bool realtime = true){
     if(realtime)
         ts_volumeColibration = c * VOLTAGE_RATE;
     else
         ts_volumeColibration = c;
 }
-
 
 int TSCurveBuffer::startIndex(){
     return ts_startIndex;
@@ -241,13 +237,16 @@ float TSCurveBuffer::tempOutToDeg(int temp){
 }
 
 int TSCurveBuffer::getLenght(){
-    return lenght;
+    return ts_integral.length();
 }
 
 void TSCurveBuffer::clean(){
     setEnd(0);
     ts_end=0;
-    lenght=0;
+    ts_volume.clear();
+    ts_tempIn.clear();
+    ts_tempOut.clear();
+    ts_integral.clear();
     paramcalc.reset();
 }
 
@@ -267,35 +266,19 @@ int TSCurveBuffer::setReference(QSettings *set){
     return 0;
 }
 
-void TSCurveBuffer::setLenght(int l){
-    lenght = l;
-}
-
 QVector<int> TSCurveBuffer::tempInVector()
 {
-    QVector<int> vec;
-    for (int i = 0; i < ts_end; i++){
-        vec.push_back(ts_tempIn[i]);
-    }
-    return vec;
+    return ts_tempIn;
 }
 
 QVector<int> TSCurveBuffer::tempOutVector()
 {
-    QVector<int> vec;
-    for (int i = 0; i < ts_end; i++){
-        vec.push_back(ts_tempOut[i]);
-    }
-    return vec;
+    return ts_tempOut;
 }
 
 QVector<int> TSCurveBuffer::volumeVector()
 {
-    QVector<int> vec;
-    for (int i = 0; i < ts_end; i++){
-        vec.push_back(ts_integral[i]);
-    }
-    return vec;
+    return ts_integral;
 }
 
 void TSCurveBuffer::updateAvData(int avgTempIn, int avgTempOut, int avgDo, int ChD){

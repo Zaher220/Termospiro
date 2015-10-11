@@ -34,7 +34,6 @@ public:
     CurvesSegnments lastSegments();
 
     void setVolumeColibration(int c,bool realtime);
-    void setValues(int* volume,int* tin,int* tout, int n);
     void append(int v, int tI, int tO, bool realtime = true);
     int startIndex();
     void setStartIndex(int s);
@@ -54,16 +53,14 @@ public:
     float tempOutToDeg(int temp);
     int getLenght();
     void clean();
-    void setLenght(int l);
     QColor volColor;
     QColor tinColor;
     QColor toutColor;
-    int lenght;
     QVector<int> tempInVector();
     QVector<int> tempOutVector();
     QVector<int> volumeVector();
 signals:
-    void changed(CurvesSegnments s);
+    //void changed(CurvesSegnments s);
     void overflowed();
     void updateAverageData(int avgTempIn, int avgTempOut, int avgDo, int ChD);
 public slots:
@@ -95,6 +92,7 @@ private:
     int ts_refTemp;
     QVector<int> BreathVolumes;
     tsRealCalcWrapper paramcalc;
+    QThread m_thread;
 };
 
 #endif // TSCURVEBUFFER_H
