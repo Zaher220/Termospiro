@@ -10,6 +10,8 @@
 #include <tstempanalitic.h>
 #include <QThread>
 #include "tsrealcalcwrapper.h"
+#include "src/datatypes.h"
+
 using namespace std;
 
 #define VOLTAGE_RATE    0.61
@@ -63,9 +65,10 @@ signals:
     //void changed(CurvesSegnments s);
     void overflowed();
     void updateAverageData(int avgTempIn, int avgTempOut, int avgDo, int ChD);
+    void finished();
 public slots:
     void updateAvData(int avgTempIn, int avgTempOut, int avgDo, int ChD);
-    void appendData(QVector<int> volume, QVector<int> tempin, QVector<int> tempout);
+    void appendData(IntegerVector volume, IntegerVector tempin, IntegerVector tempout);
 private:
 
     QVector<int> ts_volume;

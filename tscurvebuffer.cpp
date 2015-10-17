@@ -15,11 +15,14 @@ TSCurveBuffer::TSCurveBuffer(QObject *parent) :QObject(parent){
     ts_volumeNegConvert=-1;
     max_v=-1100000;
     min_v=10000;
-    //moveToThread(m_thread);
-    //m_thread.start();
+    moveToThread(&m_thread);
+    //connect(this, SIGNAL(finished()), &m_thread, SLOT())
+    m_thread.start();
+
 }
 
 TSCurveBuffer::~TSCurveBuffer(){
+    m_thread.quit();
 }
 
 int TSCurveBuffer::end(){
@@ -27,8 +30,7 @@ int TSCurveBuffer::end(){
 }
 
 void TSCurveBuffer::append(int v, int tI, int tO, bool realtime){
-
-    if(ts_end == 17999){
+    if(ts_end > 18000){
         emit overflowed();
         return;
     }
@@ -56,7 +58,7 @@ void TSCurveBuffer::append(int v, int tI, int tO, bool realtime){
     v -= ts_volumeColibration;
 
     CurvesSegnments segs;
-    if(ts_end>0){
+    if(ts_end > 0){
         if (ts_integral[ts_end-1]>=max_v){
             max_v=ts_integral[ts_end-1];
             maxc_v=ts_end-1;
@@ -247,6 +249,10 @@ void TSCurveBuffer::clean(){
     ts_tempIn.clear();
     ts_tempOut.clear();
     ts_integral.clear();
+    ts_volume.resize(18000);
+    ts_tempIn.resize(18000);
+    ts_tempOut.resize(18000);
+    ts_integral.resize(18000);
     paramcalc.reset();
 }
 
@@ -285,7 +291,7 @@ void TSCurveBuffer::updateAvData(int avgTempIn, int avgTempOut, int avgDo, int C
     emit updateAverageData(avgTempIn,avgTempOut,avgDo,ChD);
 }
 
-void TSCurveBuffer::appendData(QVector<int> volume, QVector<int> tempin, QVector<int> tempout)
+void TSCurveBuffer::appendData(IntegerVector volume, IntegerVector tempin, IntegerVector tempout)
 {
     for(int i=0; i < volume.size(); i++){
         this->append(volume[i], tempin[i], tempout[i]);

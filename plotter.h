@@ -28,8 +28,6 @@ public:
     void setMaxcVol(int value);
     void startCPlottingTimer(int m_volume);
 
-
-
     int getW() const;
     void setW(int value);
 
@@ -82,11 +80,7 @@ public slots:
     void scaleForHorizontal(int value);
     void changeTempInScrollValue(int value);
 private slots:
-
-
     void on_horizontalScrollBar_sliderPressed();
-
-
 private:
     QTimer plotingTimer;
 

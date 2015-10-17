@@ -119,7 +119,7 @@ TSController::TSController(QWidget *parent):QMainWindow(parent)//,ui(new Ui::TSV
     ui.backExamButton->installEventFilter(this);
 
     connect(&m_adc_reader, SIGNAL(sendACQData(AdcDataMatrix)), &m_raw_data_parser, SLOT(setACQData(AdcDataMatrix)));
-    connect(&m_raw_data_parser, SIGNAL(sendNewData(QVector<int>,QVector<int>,QVector<int>)), &curveBuffer, SLOT(appendData(QVector<int>,QVector<int>,QVector<int>)));
+    connect(&m_raw_data_parser, SIGNAL(sendNewData(IntegerVector, IntegerVector, IntegerVector)), &curveBuffer, SLOT(appendData(IntegerVector, IntegerVector, IntegerVector)));
 
     ui.examsTableView->setEditTriggers(QTableView::NoEditTriggers);;
 
@@ -647,7 +647,7 @@ void TSController::breakExam()
 void TSController::processDataParams(){
     //    qDebug()<<"TSController::processDataParams";
     qDebug()<<"this is result button !";
-    /*QTableWidget *qtw = ui.resultsTable;
+    QTableWidget *qtw = ui.resultsTable;
     qtw->setColumnCount(2);
     qtw->setRowCount(12);
     qtw->verticalHeader()->setVisible(false);
@@ -717,7 +717,7 @@ void TSController::processDataParams(){
 
     qtw->removeRow(0);
     qtw->show();
-    delete vs;*/
+    delete vs;
 }
 
 void TSController::deletePatient(int index){

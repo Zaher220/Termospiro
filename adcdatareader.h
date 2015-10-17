@@ -74,8 +74,8 @@ private:
     const double ReadRate = 2.048;
     //max возможное кол-во передаваемых отсчетов (кратное 32) для ф. ReadData и WriteData()
     //DWORD DataStep = 1024 * 1024;
-    DWORD DataStep = 8192;
-    //DWORD DataStep = 512;
+    //DWORD DataStep = 8192;
+    DWORD DataStep = 512;
     //Число каналов
     const DWORD ChannaleQuantity = 0x4;
     // столько блоков по DataStep отсчётов нужно собрать в файл

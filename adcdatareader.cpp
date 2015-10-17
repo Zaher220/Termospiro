@@ -446,7 +446,8 @@ void ADCDataReader::processADC()
     if (pModule->START_READ())
     {
         // цикл сбора данных
-        i = 0x1;
+        //i = 0x1;
+        i = 0x0;
         m_samples_count = 0;
         while (is_acq_started && m_samples_count <= m_samples_number){
             //for (i = 0x1; i < NBlockRead; i++)
@@ -468,32 +469,32 @@ void ADCDataReader::processADC()
 
             i++;
 
-            if ( i == NBlockRead ){
-                for (int k = 0; k < DataStep * i; k += MaxVirtualSoltsQuantity){
-                    data[0].push_back(ReadBuffer[k]);
-                    data[1].push_back(ReadBuffer[k+1]);
-                    data[2].push_back(ReadBuffer[k+2]);
-                    data[3].push_back(ReadBuffer[k+3]);
-                }
-                if (ReadBuffer == ReadBuffer1){
-                    ReadBuffer = ReadBuffer2;
-                    memset(ReadBuffer2, 0, NBlockRead * DataStep );
-                    //i = 0x1;//почему не равно нулю
-                    i = 0x0;
-                }
-                else{
-                    ReadBuffer = ReadBuffer1;
-                    memset(ReadBuffer1, 0, NBlockRead * DataStep );
-                    //i = 0x1;//почему не равно нулю
-                    i = 0x0;
-                }
-                m_samples_count += data[0].size();
-                emit sendACQData(data);
-                for(int k=0 ; k < 4; k++)
-                    data[k].clear();
+            //if ( i == NBlockRead ){
+            for (int k = 0; k < DataStep * i; k += MaxVirtualSoltsQuantity){
+                data[0].push_back(ReadBuffer[k]);
+                data[1].push_back(ReadBuffer[k+1]);
+                data[2].push_back(ReadBuffer[k+2]);
+                data[3].push_back(ReadBuffer[k+3]);
+            }
+            if (ReadBuffer == ReadBuffer1){
+                ReadBuffer = ReadBuffer2;
+                memset(ReadBuffer2, 0, NBlockRead * DataStep );
                 //i = 0x1;//почему не равно нулю
                 i = 0x0;
             }
+            else{
+                ReadBuffer = ReadBuffer1;
+                memset(ReadBuffer1, 0, NBlockRead * DataStep );
+                //i = 0x1;//почему не равно нулю
+                i = 0x0;
+            }
+            m_samples_count += data[0].size();
+            emit sendACQData(data);
+            for(int k=0 ; k < 4; k++)
+                data[k].clear();
+            //i = 0x1;//почему не равно нулю
+            i = 0x0;
+            //}
         }
 
         // ждём окончания операции сбора последней порции данных
