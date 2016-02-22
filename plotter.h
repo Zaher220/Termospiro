@@ -69,7 +69,9 @@ public:
 
 signals:
     void stopACQU();
+    void changeprogress(int);
 public slots:
+    void stopPlottimgTimer();
     void plotNow();
     void plotCalibration();
     void startPlottingTimer(int m_volume);
@@ -93,9 +95,7 @@ private:
     QPainter pVolume;
     QPainter pTempIn;
     QPainter pTempOut;
-    int* m_volume;
-    int* m_tempIn;
-    int* m_tempOut;
+
     int screenLimit;
     int startIndex;
     int W;
@@ -110,15 +110,15 @@ private:
     int tempInZerPos;
     int tempOutZerPos;
     int scaleScroll[5];
-    int *tempInInterval;
+    int *tempInInterval = nullptr;
     double tempInAdaptive;
-    int *tempOutInterval;
+    int *tempOutInterval = nullptr;
     double tempOutAdaptive;
     double volumeAdaptive;
     int maxcVol;
-    Ui::TSView *ui;
-    TSCurveBuffer *curveBuffer;
-    QWidget *parentWindow;
+    Ui::TSView *ui = nullptr;
+    TSCurveBuffer *curveBuffer = nullptr;
+    QWidget *parentWindow = nullptr;
 };
 
 #endif // PLOTTER_H

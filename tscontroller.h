@@ -17,6 +17,7 @@
 #include "ADCDataReader.h"
 #include "rawdataparser.h"
 #include "plotter.h"
+#include "examscontrollerl.h"
 
 namespace Ui {
 class TSView;
@@ -26,7 +27,7 @@ class TSVolSignalWidget;
 class Form;
 }
 
-enum CurrentAction {NoAction,CreatePatientProfileAction,EditPatientProfileAction,GetingVolZero};
+
 
 class TSController : public QMainWindow
 {
@@ -44,6 +45,7 @@ public slots:
     void completePatientId();
 
     void calibrateVolume();
+    void calibrationFinished();
     void rejectColibration();
 
     void startExam();
@@ -62,20 +64,23 @@ public slots:
 
     void processDataParams();
     void printReport();
+    void stopCalibration();
 protected:
     void resizeEvent(QResizeEvent *evt);
     void closeEvent(QCloseEvent *e);
     void openPrivateDB(QSqlRecord record);
 private slots:
+
     void on_backPatientProfileButton_clicked();
     void on_backPatientListButton_clicked();
     void on_openButton_clicked();
 
     void on_backCallibrateButton_clicked();
     void on_backExamButton_clicked();
+    void getZeroSognalLevels();
 
 private:
-    ADCDataReader m_adc_reader;
+    ADCDataReader *m_adc_reader;
     RawDataParser m_raw_data_parser;
     TSCurveBuffer curveBuffer;
     Plotter m_plotter;
@@ -95,13 +100,14 @@ private:
 
     bool recordingStarted;
     //модели
-    TSPatients *patientsModel;
-    TSExaminations *examinationsModel;
-    QSqlDatabase patientsConnection;
-    QSqlDatabase examinationsConnection;
+    //TSPatients *patientsModel;
+    //TSExaminations *examinationsModel;
     bool isInitialized;
     QTime myTimer;
+    ExamsController m_exam_cntrl;
 
+    //QSqlDatabase patientsConnection;
+    //QSqlDatabase examinationsConnection;
 };
 
 #endif // TSVIEW_H

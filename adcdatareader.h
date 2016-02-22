@@ -22,7 +22,7 @@ public:
     int getSamples_number() const;
     void setSamples_number(int samples_number);
     bool isReady();
-
+    QVector<int> getSamplesSinc(int channel, int samplesNumber);
 public slots:
     void startADC(int samples_number);
     void stopADC();
@@ -71,7 +71,8 @@ private:
     const WORD MaxVirtualSoltsQuantity = 4;
     // частота  ввода данных
     //const double ReadRate = 0.6;/*150Hz per channel*/
-    const double ReadRate = 2.048;
+    //const double ReadRate = 2.048;
+    const double ReadRate = 0.512;
     //max возможное кол-во передаваемых отсчетов (кратное 32) для ф. ReadData и WriteData()
     //DWORD DataStep = 1024 * 1024;
     //DWORD DataStep = 8192;
@@ -81,11 +82,8 @@ private:
     // столько блоков по DataStep отсчётов нужно собрать в файл
     const WORD NBlockRead = 2;
     // указатель на буфер для вводимых данных
-    SHORT	*ReadBuffer;
+    SHORT	ReadBuffer[1024];
     SHORT	*ReadBuffer1, *ReadBuffer2;
-
-    // экранный счетчик-индикатор
-    DWORD Counter = 0x0, OldCounter = 0xFFFFFFFF;
 
     // номер ошибки при выполнении потока сбора данных
     WORD ThreadErrorNumber;

@@ -62,7 +62,7 @@ public:
     QVector<int> tempOutVector();
     QVector<int> volumeVector();
 signals:
-    //void changed(CurvesSegnments s);
+    void changed(CurvesSegnments s);
     void overflowed();
     void updateAverageData(int avgTempIn, int avgTempOut, int avgDo, int ChD);
     void finished();
@@ -96,6 +96,7 @@ private:
     QVector<int> BreathVolumes;
     tsRealCalcWrapper paramcalc;
     QThread m_thread;
+    double DeltaT = 1/128; // Приращение времени. Было 0,1
 };
 
 #endif // TSCURVEBUFFER_H

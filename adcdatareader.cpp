@@ -336,7 +336,7 @@ void ADCDataReader::startADC(int samples_number)
     if( m_thread != nullptr ){
         if ( m_thread->isRunning() ){
             m_thread->terminate();
-            //delete m_thread;
+            delete m_thread;
             m_thread = nullptr;
         }
     }
@@ -353,7 +353,7 @@ void ADCDataReader::startADC(int samples_number)
     // сбросим флаг ошибок потока ввода данных
     ThreadErrorNumber = 0x0;
 
-    ReadBuffer = ReadBuffer1;
+    //ReadBuffer = ReadBuffer1;
 
     // Создаем и запускаем поток сбора ввода данных из модуля
 
@@ -367,10 +367,17 @@ void ADCDataReader::stopADC()
 
     /*if ( pModule != NULL )
         pModule->STOP_READ();*/
-
     if ( m_thread != nullptr ){
         m_thread->quit();
         m_thread->wait();
+    }
+
+    if( m_thread != nullptr ){
+        if ( m_thread->isRunning() ){
+            m_thread->terminate();
+            delete m_thread;
+            m_thread = nullptr;
+        }
     }
 
     // подчищаем интерфейс модуля
@@ -446,10 +453,10 @@ void ADCDataReader::processADC()
     if (pModule->START_READ())
     {
         // цикл сбора данных
-        //i = 0x1;
-        i = 0x0;
+        i = 0x1;
+        //i = 0x0;
         m_samples_count = 0;
-        while (is_acq_started && m_samples_count <= m_samples_number){
+        while (is_acq_started && (m_samples_number == -1 || m_samples_count <= m_samples_number) ){
             //for (i = 0x1; i < NBlockRead; i++)
             //{
 
@@ -470,13 +477,24 @@ void ADCDataReader::processADC()
             i++;
 
             //if ( i == NBlockRead ){
-            for (int k = 0; k < DataStep * i; k += MaxVirtualSoltsQuantity){
+            //for (int k = 0; k < DataStep * i; k += MaxVirtualSoltsQuantity){
+            qDebug()<<"RequestNumber"<<RequestNumber;
+            qDebug()<<"BytesTransferred"<< BytesTransferred[RequestNumber];
+
+            //qDebug<<ReadBuffer;
+            //for (int k = 0; k < BytesTransferred[RequestNumber]; k += MaxVirtualSoltsQuantity){
+            for (int k = 0; k < DataStep ; k += MaxVirtualSoltsQuantity){
                 data[0].push_back(ReadBuffer[k]);
                 data[1].push_back(ReadBuffer[k+1]);
                 data[2].push_back(ReadBuffer[k+2]);
                 data[3].push_back(ReadBuffer[k+3]);
             }
-            if (ReadBuffer == ReadBuffer1){
+            //            for(int k=0;k<data[0].size();k++)
+            //                qDebug()<<data[0][k];
+            qDebug()<<data[0].size();
+            m_samples_count += data[0].size();
+            memset(ReadBuffer, 0, NBlockRead * DataStep );
+            /*if (ReadBuffer == ReadBuffer1){
                 ReadBuffer = ReadBuffer2;
                 memset(ReadBuffer2, 0, NBlockRead * DataStep );
                 //i = 0x1;//почему не равно нулю
@@ -487,8 +505,8 @@ void ADCDataReader::processADC()
                 memset(ReadBuffer1, 0, NBlockRead * DataStep );
                 //i = 0x1;//почему не равно нулю
                 i = 0x0;
-            }
-            m_samples_count += data[0].size();
+            }*/
+
             emit sendACQData(data);
             for(int k=0 ; k < 4; k++)
                 data[k].clear();
@@ -522,6 +540,19 @@ void ADCDataReader::processADC()
     // установим флажок окончания потока сбора данных
     IsThreadComplete = true;
     // теперь можно воходить из потока сбора данных
+
+    // подчищаем интерфейс модуля
+    /*if (pModule != NULL){
+        // освободим интерфейс модуля
+        if (!pModule->ReleaseInstance())
+            printf(" ReleaseInstance() --> Bad\n");
+        else
+            printf(" ReleaseInstance() --> OK\n");
+        // обнулим указатель на интерфейс модуля
+        pModule = NULL;
+    }
+   is_acq_started = false;*/
+
     emit finished();
     return;
 }
@@ -546,4 +577,57 @@ bool ADCDataReader::isReady()
     }else
         return false;
 
+}
+
+QVector<int> ADCDataReader::getSamplesSinc(int channel, int samplesNumber)
+{
+    is_acq_started = true;
+
+    stopADC();
+
+    if ( !initADC())
+        return QVector<int>();
+
+    // остановим ввод данных и одновременно прочистим соответствующий канал bulk USB
+    if (!pModule->STOP_READ()) {
+        return QVector<int>();
+    }
+
+    short AdcBuffer[3];
+    int avgs[3];
+    QVector<int> vec[3];
+    if (pModule->START_READ())
+    {
+        for(int i = 0; i < samplesNumber; i++)
+        {
+            if (pModule->READ_KADR(AdcBuffer)) {
+                avgs[0] = ((avgs[0]*i)+AdcBuffer[0])/(i+1);
+                avgs[1] = ((avgs[1]*i)+AdcBuffer[1])/(i+1);
+                avgs[2] = ((avgs[2]*i)+AdcBuffer[2])/(i+1);
+                vec[0].push_back(AdcBuffer[0]);
+                vec[1].push_back(AdcBuffer[1]);
+                vec[2].push_back(AdcBuffer[2]);
+            }
+        }
+    }
+
+    // остановим ввод данных
+    if (!pModule->STOP_READ())
+        return QVector<int>();
+
+    // подчищаем интерфейс модуля
+    if (pModule != NULL){
+        // освободим интерфейс модуля
+        if (!pModule->ReleaseInstance())
+            printf(" ReleaseInstance() --> Bad\n");
+        else
+            printf(" ReleaseInstance() --> OK\n");
+        // обнулим указатель на интерфейс модуля
+        pModule = NULL;
+    }
+
+    is_acq_started = false;
+    if( channel > 3 )
+        return vec[channel];
+    return QVector<int>();
 }

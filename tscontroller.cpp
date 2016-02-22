@@ -39,6 +39,8 @@ TSController::TSController(QWidget *parent):QMainWindow(parent)//,ui(new Ui::TSV
     //QTextCodec::setCodecForTr(QTextCodec::codecForName("CP-1251"));
     QSettings settings("settings.ini",QSettings::IniFormat);
 
+    m_adc_reader = new ADCDataReader();
+
     ui.setupUi(this);
 
     currentAction = NoAction;
@@ -64,19 +66,17 @@ TSController::TSController(QWidget *parent):QMainWindow(parent)//,ui(new Ui::TSV
     ui.tempOutScaleSlider->setVisible(false);
     ui.volumeScaleSlider->setVisible(false);
     ui.breakExamButton->setVisible(false);
-    patientsConnection = QSqlDatabase::addDatabase("QSQLITE","Patients");
-    patientsConnection.setDatabaseName("commondb\\common.db");
-    if(!patientsConnection.open())
-    {
+
+    if( !m_exam_cntrl.init() ){
         QMessageBox msgBox(this);
         msgBox.setWindowTitle(tr("Ошибка"));
-        QString error = QString("Произошла ошибка.\nОбратитесь к разработчикам.\nКод: 00001.\nПрограмма будет завершена. ")+patientsConnection.lastError().text().toStdString().c_str();
+        QString error = QString("Произошла ошибка.\nОбратитесь к разработчикам.\nКод: 00001.\nПрограмма будет завершена. ")+m_exam_cntrl.getErrorPatientsConnection().text().toStdString().c_str();
 
         msgBox.setText(error);
         msgBox.exec();
         QApplication::exit(0);
     }
-    patientsModel = new TSPatients(patientsConnection);
+
     connect(ui.createButton,SIGNAL(clicked()),this,SLOT(editPatientProfile()));
     connect(ui.saveProfileButton,SIGNAL(clicked()),this,SLOT(savePatientProfile()));
     connect(ui.ignoreCalibrateButton,SIGNAL(clicked()),this,SLOT(rejectColibration()));
@@ -118,22 +118,23 @@ TSController::TSController(QWidget *parent):QMainWindow(parent)//,ui(new Ui::TSV
     ui.backCallibrateButton->installEventFilter(this);
     ui.backExamButton->installEventFilter(this);
 
-    connect(&m_adc_reader, SIGNAL(sendACQData(AdcDataMatrix)), &m_raw_data_parser, SLOT(setACQData(AdcDataMatrix)));
-    connect(&m_raw_data_parser, SIGNAL(sendNewData(IntegerVector, IntegerVector, IntegerVector)), &curveBuffer, SLOT(appendData(IntegerVector, IntegerVector, IntegerVector)));
+    connect(m_adc_reader, SIGNAL(sendACQData(AdcDataMatrix)), &m_raw_data_parser, SLOT(setACQData(AdcDataMatrix)));
+   // connect(&m_raw_data_parser, SIGNAL(sendNewData(IntegerVector, IntegerVector, IntegerVector)), &curveBuffer, SLOT(appendData(IntegerVector, IntegerVector, IntegerVector)));
 
     ui.examsTableView->setEditTriggers(QTableView::NoEditTriggers);;
 
     ui.mainBox->setCurrentIndex(0);
     m_plotter.setUi(&ui);
     m_plotter.setParentWindow(this);
-    connect(&m_plotter, SIGNAL(stopACQU()), &m_adc_reader, SLOT(stopADC()));
+    connect(&m_plotter, SIGNAL(stopACQU()), m_adc_reader, SLOT(stopADC()));
 
-
+    m_exam_cntrl.setm_ui(&ui);
     //connect(ui.backExamButton, SIGNAL(clicked()), this, SLOT(on_pressBuckButton()));
 }
 
 TSController::~TSController()
 {
+    delete m_adc_reader;
     qDebug()<<"TSController::~TSController";
     //delete ui;
 }
@@ -180,6 +181,9 @@ void TSController::editPatientProfile()
 
 void TSController::savePatientProfile()
 {
+    m_exam_cntrl.savePatientProfile();
+    m_exam_cntrl.setAction(currentAction);
+/*
     qDebug()<<"TSController::savePatientProfile";
     QMessageBox msgBox(this);
     msgBox.setWindowTitle(tr("Ошибка"));
@@ -247,7 +251,7 @@ void TSController::savePatientProfile()
         break;
     }
     default: break;
-    }
+    }*/
 }
 
 void TSController::rejectPatientProfile()
@@ -272,36 +276,168 @@ void TSController::rejectPatientProfile()
 }
 
 void TSController::calibrateVolume(){
-    QSettings settings("settings.ini",QSettings::IniFormat);
+    QSettings settings("settings.ini", QSettings::IniFormat);
     QDialog d(this);
     Ui::TSProgressDialog dui;
-
     dui.setupUi(&d);
 
-    connect(&m_adc_reader, SIGNAL(done()), &d, SLOT(accept()));
-    connect(&m_adc_reader, SIGNAL(changeProgress(int)), dui.progressBar, SLOT(setValue(int)));
 
     //controller->setWindowFlags(Qt::WindowTitleHint | Qt::WindowMinimizeButtonHint|Qt::SubWindow);
     d.setWindowTitle(tr("Предупреждение"));
     dui.information->setText(tr("Идет подготовка..."));
     dui.acceptButton->setVisible(false);
 
-    m_adc_reader.setSamples_number(1250);
-    m_adc_reader.startADC(0);
-
-    if(d.exec()==1){
-        settings.setValue("volZero",curveBuffer.volumeColibration());
-        dui.information->setText(tr("Подготовка завершена.\nНажмите ОК и качайте шприцем."));
-        dui.progressBar->setVisible(false);
-        dui.acceptButton->setVisible(true);
+    auto data = m_adc_reader->getSamplesSinc(0,100);
+    int sum = 0;
+    double avg = 0;
+    for(int i = 0; i < data.size(); i++){
+        sum+=data[i];
     }
-    m_adc_reader.stopADC();
+    if (data.size() != 0)
+        avg = sum / data.size();
+    curveBuffer.setVolumeColibration(avg, true);
 
+    settings.setValue("volZero",curveBuffer.volumeColibration());
+    //dui.information->setText(tr("Подготовка завершена.\nНажмите ОК и качайте шприцем."));
+    dui.information->setText(tr("Подготовка завершена.\nНажмите Пропустить."));
+        dui.progressBar->setVisible(false);
+    dui.acceptButton->setVisible(true);
+
+
+    //вот сдесть нужно подождать пока всё измериться
 
     d.exec();
 
-    m_adc_reader.startADC(0);
+    dui.progressBar->setVisible(false);
+    dui.acceptButton->setVisible(true);
+
+    delete m_adc_reader;
+   /* m_adc_reader = new ADCDataReader();
+
+    connect(m_adc_reader, SIGNAL(sendACQData(AdcDataMatrix)), &m_raw_data_parser, SLOT(setACQData(AdcDataMatrix)));
+    connect(&m_raw_data_parser, SIGNAL(sendNewData(IntegerVector, IntegerVector, IntegerVector)), &curveBuffer, SLOT(appendData(IntegerVector, IntegerVector, IntegerVector)));
+
+    connect(m_adc_reader, SIGNAL(finished()), &d, SLOT(accept()));
+
+
+    connect(&m_plotter, SIGNAL(changeprogress(int)), dui.progressBar, SLOT(setValue(int)));
+
+    m_adc_reader->setSamples_number(1536);
     m_plotter.startCPlottingTimer(100);
+    m_adc_reader->startADC(0);
+
+    connect(m_adc_reader, SIGNAL(finished()), this, SLOT(stopCalibration()));
+    dui.progressBar->setVisible(true);
+    dui.acceptButton->setVisible(true);
+    d.exec();*/
+
+
+}
+
+void TSController::calibrationFinished()
+{
+
+    //auto vol = curveBuffer.volumeVector();
+    /*cPlotingTimer.stop();
+    QSettings settings("settings.ini",QSettings::IniFormat);
+    QDialog d(parentWindow);
+    Ui::TSProgressDialog dui;
+    dui.setupUi(&d);
+    d.setWindowTitle(tr("Предупреждение"));
+    QVector<int> vol = curveBuffer->volumeVector();
+    tsanalitics ta;
+    qDebug()<<"curvebuff end "<<curveBuffer->end();
+    for(int i=0;i<curveBuffer->end();i++){
+        ta.append(vol[i]);
+    }
+    ta.approximate();
+    qDebug()<<"get min "<<ta.getMin()<<" ; get max "<<ta.getMax();
+    settings.setValue("volOutLtr",ta.getMin());
+    settings.setValue("volInLtr",ta.getMax());
+    qDebug()<<"setVolumeConverts plotCalibration "<<ta.getMin()<<" "<<ta.getMax();
+    curveBuffer->setVolumeConverts(ta.getMax(),ta.getMin());
+
+    qDebug()<<"reading is finished";
+
+    emit stopACQU();
+    //m_adc_reader->stopACQ();
+
+    //curveBuffer->clean();
+    settings.sync();
+    dui.progressBar->setVisible(false);
+    dui.acceptButton->setVisible(true);
+    dui.information->setText(tr("Калибровка успешно завершена.\nНажмите ОК для продолжения."));
+    if(d.exec()==1){
+        ui->mainBox->setCurrentIndex(5);
+        ui->managmentSpaser->setGeometry(QRect(0,0,350,2));
+        ui->managmentBox->setVisible(true);
+        ui->managmentBox->setEnabled(true);
+        ui->startExam->setEnabled(true);
+        ui->stopExam->setEnabled(true);
+        curveBuffer->setEnd(0);
+        initPaintDevices();
+        plotNow();
+    }
+    curveBuffer->setEnd(0);
+    maxcVol = 0;
+    ui->volumeInfoLabel->setVisible(false);
+    ui->tinInfoLabel->setVisible(false);
+    ui->toutInfolabel->setVisible(false);
+*/
+
+}
+
+void TSController::stopCalibration()
+{
+    m_adc_reader->stopADC();
+delete m_adc_reader;
+    //auto vol = curveBuffer.volumeVector();
+
+    m_plotter.stopPlottimgTimer();
+
+    QSettings settings("settings.ini", QSettings::IniFormat);
+    QDialog d(this);
+    Ui::TSProgressDialog dui;
+    dui.setupUi(&d);
+    d.setWindowTitle(tr("Предупреждение"));
+
+
+
+    QVector<int> vol = curveBuffer.volumeVector();
+    tsanalitics ta;
+    qDebug()<<"curvebuff end "<<curveBuffer.end();
+    for(int i=0; i<vol.size(); i++){
+        ta.append(vol[i]);
+    }
+    ta.approximate();
+    qDebug()<<"get min "<<ta.getMin()<<" ; get max "<<ta.getMax();
+    settings.setValue("volOutLtr",ta.getMin());
+    settings.setValue("volInLtr",ta.getMax());
+    qDebug()<<"setVolumeConverts plotCalibration "<<ta.getMin()<<" "<<ta.getMax();
+    curveBuffer.setVolumeConverts(ta.getMax(),ta.getMin());
+
+    settings.sync();
+    dui.progressBar->setVisible(false);
+    dui.acceptButton->setVisible(true);
+    dui.information->setText(tr("Калибровка успешно завершена.\nНажмите ОК для продолжения."));
+    if(d.exec()==1){
+        ui.mainBox->setCurrentIndex(5);
+        ui.managmentSpaser->setGeometry(QRect(0, 0, 350, 2));
+        ui.managmentBox->setVisible(true);
+        ui.managmentBox->setEnabled(true);
+        ui.startExam->setEnabled(true);
+        ui.stopExam->setEnabled(true);
+        curveBuffer.setEnd(0);
+        m_plotter.initPaintDevices();
+        m_plotter.plotNow();
+    }
+    curveBuffer.setEnd(0);
+    m_plotter.setMaxcVol(0);
+    ui.volumeInfoLabel->setVisible(false);
+    ui.tinInfoLabel->setVisible(false);
+    ui.toutInfolabel->setVisible(false);
+
+    qDebug()<<"Calib fin";
 }
 
 void TSController::rejectColibration()
@@ -336,7 +472,12 @@ void TSController::startExam()
     ui.toutInfolabel->setVisible(true);
     curveBuffer.clean();
 
-    m_adc_reader.startADC(0);
+    m_adc_reader = new ADCDataReader();
+
+    connect(m_adc_reader, SIGNAL(sendACQData(AdcDataMatrix)), &m_raw_data_parser, SLOT(setACQData(AdcDataMatrix)));
+    //connect(&m_raw_data_parser, SIGNAL(sendNewData(IntegerVector, IntegerVector, IntegerVector)), &curveBuffer, SLOT(appendData(IntegerVector, IntegerVector, IntegerVector)));
+
+    m_adc_reader->startADC(0);
 
     myTimer.start();
     m_plotter.setRecordingStarted(true);
@@ -366,10 +507,12 @@ void TSController::stopExam()
     {
         m_plotter.stopPlottingTimer();
 
-        m_adc_reader.stopADC();
+        m_adc_reader->stopADC();
 
         qDebug()<<"Stop exam";
-        QSqlRecord record = examinationsModel->record();
+        m_exam_cntrl.writeExamToDB(curveBuffer.volumeVector(), curveBuffer.tempInVector(), curveBuffer.tempOutVector(),
+                                   curveBuffer.volumeConverts().at(1), curveBuffer.volumeConverts().at(0));
+        /*QSqlRecord record = examinationsModel->record();
 
         QString val;
 
@@ -401,7 +544,7 @@ void TSController::stopExam()
         record.setValue("date",QDate::currentDate().toString("yyyy-MM-dd"));
         record.setValue("time",QTime::currentTime().toString("hh:mm"));
         if(!examinationsModel->insertRecord(-1,record))
-            qDebug()<<"exam insertError";
+            qDebug()<<"exam insertError";*/
         ui.horizontalScrollBar->setEnabled(true);
 
     }
@@ -415,7 +558,8 @@ void TSController::stopExam()
 void TSController::openPatientList()
 {
     //qDebug()<<"TSController::openPatientList";
-    patientsModel->setFilter("");
+    m_exam_cntrl.openPatientList();
+   /* patientsModel->setFilter("");
     patientsModel->select();
     ui.patientsTableView->setModel(patientsModel);
     ui.patientsTableView->setColumnHidden(0, true);
@@ -427,7 +571,7 @@ void TSController::openPatientList()
     ui.mainBox->setCurrentIndex(2);
     ui.patientsTableView->horizontalHeader()->setDefaultSectionSize((ui.patientsTableView->width()-2)/5);
     ui.patientsTableView->setSelectionBehavior(QAbstractItemView::SelectRows);
-    ui.patientsTableView->setEditTriggers(QTableView::NoEditTriggers);
+    ui.patientsTableView->setEditTriggers(QTableView::NoEditTriggers);*/
     openUser = true;
 }
 
@@ -498,7 +642,7 @@ void TSController::scrollGraphics(int value)
 }
 
 void TSController::createNewExam(){
-    if ( m_adc_reader.isReady() == true ){
+    if ( m_adc_reader->isReady() == true ){
         qDebug()<<"TSController::createNewExam";
         ui.mainBox->setCurrentIndex(4);
         m_plotter.setCH(ui.calibrateVolumeAnimation->height());
@@ -508,7 +652,8 @@ void TSController::createNewExam(){
         curveBuffer.setEnd(0);
         //curveBuffer.setLenght(0);
         m_plotter.setMaxcVol(0);
-        m_plotter.plotCalibration();
+        m_plotter.plotCalibration();//!!!
+        calibrateVolume();
     }else{
         QMessageBox msgBox;
         msgBox.setWindowTitle(tr("Внимание"));
@@ -547,7 +692,7 @@ void TSController::openExam(QModelIndex ind)
 
     curveBuffer.appendData(volume, tempin, tempout);
 
-    curveBuffer.setVolumeColibration(record.value("volZero").toInt(),false);
+    curveBuffer.setVolumeColibration(record.value("volZero").toInt(), false);
 
     qDebug()<<"setVolumeConverts openExam "<<record.value("volOut").toInt()<<" "<<record.value("volIn").toInt();
     /* curveBuffer.setVolumeConverts(record.value("volOut").toInt(),
@@ -586,7 +731,6 @@ void TSController::resizeEvent(QResizeEvent *evt)
     m_plotter.plotNow();
 }
 
-
 void TSController::changeScrollBarAfterScaling(int before, int after)
 {
     // qDebug()<<"TSController::changeScrollBarAfterScaling";
@@ -607,7 +751,7 @@ void TSController::changeScrollBarAfterScaling(int before, int after)
 
 void TSController::openPrivateDB(QSqlRecord record)
 {
-    //qDebug()<<"TSController::openPrivateDB";
+    qDebug()<<"TSController::openPrivateDB";
     examinationsConnection = QSqlDatabase::addDatabase("QSQLITE","ExamConnection");
     QDir d;
     if(!d.cd("pravatedb"))
@@ -641,7 +785,7 @@ void TSController::breakExam()
 {
     //    qDebug()<<"TSController::breakExam";
     m_plotter.stopPlottingTimer();
-    m_adc_reader.stopADC();
+    m_adc_reader->stopADC();
 }
 
 void TSController::processDataParams(){
@@ -870,10 +1014,9 @@ void TSController::printReport()
 }
 
 void TSController::closeEvent(QCloseEvent *e){
-    m_adc_reader.stopADC();
+    m_adc_reader->stopADC();
     e->accept();
 }
-
 
 void TSController::on_backPatientProfileButton_clicked()
 {
@@ -927,5 +1070,13 @@ void TSController::on_backExamButton_clicked()
         ui.managmentBox->setVisible(false);
     }
     curveBuffer.clean();
+}
+
+void TSController::getZeroSognalLevels()
+{
+    //    m_adc_reader->setSamples_number(384);
+    //    m_adc_reader->startADC(0);
+    //    sleep(3000);
+    //    m_adc_reader->stopADC();
 }
 

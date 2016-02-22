@@ -33,7 +33,8 @@ SOURCES += main.cpp\
     tools/tsvalidationtools.cpp \
     ADCDataReader.cpp \
     rawdataparser.cpp \
-    plotter.cpp
+    plotter.cpp \
+    examscontroller.cpp
 
 HEADERS  += \
     bdgod.h \
@@ -57,7 +58,9 @@ HEADERS  += \
     ADCDataReader.h \
     rawdataparser.h \
     plotter.h \
-    src/datatypes.h
+    src/datatypes.h \
+    examscontrollerl.h
+
 
 FORMS    += \
     colibrateDialog.ui \

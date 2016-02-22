@@ -122,7 +122,8 @@ void Plotter::plotCalibration()
 {
     // qDebug()<<"TSController::plotCalibration";
     int endIndex = curveBuffer->getLenght();
-    if(endIndex < 1200){
+    QVector<int> m_volume(curveBuffer->volumeVector());
+    if(endIndex < 1350){
         pcVolume.fillRect(0,0,cW,cH,Qt::white);
         int h = cH/2;
         int step = h/10;
@@ -155,7 +156,11 @@ void Plotter::plotCalibration()
         }
         ui->calibrateVolumeAnimation->setPixmap(bcVolume);
     }
-    else{
+    int k=0;
+    if (endIndex!=0)
+        k=(1350*100)/endIndex;
+    emit changeprogress(k);
+    /*else{
         cPlotingTimer.stop();
         QSettings settings("settings.ini",QSettings::IniFormat);
         QDialog d(parentWindow);
@@ -180,7 +185,7 @@ void Plotter::plotCalibration()
         emit stopACQU();
         //m_adc_reader.stopACQ();
 
-        curveBuffer->clean();
+        //curveBuffer->clean();
         settings.sync();
         dui.progressBar->setVisible(false);
         dui.acceptButton->setVisible(true);
@@ -201,7 +206,7 @@ void Plotter::plotCalibration()
         ui->volumeInfoLabel->setVisible(false);
         ui->tinInfoLabel->setVisible(false);
         ui->toutInfolabel->setVisible(false);
-    }
+    }*/
 
 }
 
@@ -514,4 +519,9 @@ bool Plotter::getRecordingStarted() const
 void Plotter::setRecordingStarted(bool value)
 {
     recordingStarted = value;
+}
+
+void Plotter::stopPlottimgTimer()
+{
+    cPlotingTimer.stop();
 }

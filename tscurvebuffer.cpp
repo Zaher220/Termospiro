@@ -4,10 +4,10 @@
 #include <tstempanalitic.h>
 
 TSCurveBuffer::TSCurveBuffer(QObject *parent) :QObject(parent){
-    ts_volume.resize(18000);
-    ts_tempIn.resize(18000);
-    ts_tempOut.resize(18000);
-    ts_integral.resize(18000);
+    /* ts_volume.resize(38400);
+    ts_tempIn.resize(38400);
+    ts_tempOut.resize(38400);
+    ts_integral.resize(38400);*/
 
     ts_end = -1;
     ts_volumeColibration = 0;
@@ -30,7 +30,7 @@ int TSCurveBuffer::end(){
 }
 
 void TSCurveBuffer::append(int v, int tI, int tO, bool realtime){
-    if(ts_end > 18000){
+    if(ts_end > 38400){
         emit overflowed();
         return;
     }
@@ -59,22 +59,33 @@ void TSCurveBuffer::append(int v, int tI, int tO, bool realtime){
 
     CurvesSegnments segs;
     if(ts_end > 0){
-        if (ts_integral[ts_end-1]>=max_v){
-            max_v=ts_integral[ts_end-1];
-            maxc_v=ts_end-1;
+        ts_integral.push_back(0);
+        ts_volume.push_back(0);
+        ts_tempIn.push_back(0);
+        ts_tempOut.push_back(0);
+        if (ts_integral[ts_end-1] >= max_v){
+            max_v = ts_integral[ts_end-1];
+            maxc_v = ts_end-1;
         }
-        if (ts_integral[ts_end-1]<=min_v){
-            min_v=ts_integral[ts_end-1];
-            minc_v=ts_end-1;
+        if (ts_integral[ts_end-1] <= min_v){
+            min_v = ts_integral[ts_end-1];
+            minc_v = ts_end-1;
         }
         segs.prevV = ts_volume[ts_end];
         segs.prevTin = ts_tempIn[ts_end];
         segs.prevTout = ts_tempOut[ts_end];
-        if(abs(v)>=8){
+
+
+
+        if( abs(v) >= 8 ){
             if(realtime)
-                ts_integral[ts_end] = 0.1*v + ts_integral[ts_end-1];
+                ts_integral[ts_end] = DeltaT*v + ts_integral[ts_end-1];
             else
                 ts_integral[ts_end] = v;
+            //            if(realtime)
+            //                ts_integral[ts_end] = DeltaT*v + ts_integral[ts_end-1];
+            //            else
+            //                ts_integral[ts_end] = v;
         }
         else
             ts_integral[ts_end]=0;
@@ -83,7 +94,15 @@ void TSCurveBuffer::append(int v, int tI, int tO, bool realtime){
         if(ts_integral[ts_end]<ts_minVolume)
             ts_minVolume=ts_integral[ts_end];
     }else{
-        ts_integral[0] = 0;
+        ts_integral.push_back(0);
+        ts_volume.push_back(0);
+        ts_tempIn.push_back(0);
+        ts_tempOut.push_back(0);
+        ts_integral.push_back(0);
+        ts_volume.push_back(0);
+        ts_tempIn.push_back(0);
+        ts_tempOut.push_back(0);
+        //ts_integral[0] = 0;
         ts_minVolume = ts_integral[0];
         ts_minVolume = ts_integral[0];
     }
@@ -92,15 +111,15 @@ void TSCurveBuffer::append(int v, int tI, int tO, bool realtime){
         ts_tempIn[ts_end] = segs.curTin = tI;
         ts_tempOut[ts_end] = segs.curTout = tO;
     }
-    //emit changed(segs);
-    /*if(realtime && ts_end > 0){
+    emit changed(segs);
+    if(realtime && ts_end > 0){
         paramcalc.addData(ts_tempIn[ts_end], ts_tempOut[ts_end], ts_integral[ts_end]);
         if ( ts_end%100 == 0 ){
             emit updateAverageData(paramcalc.getAvgTempIn(),paramcalc.getAvgTempOut(),paramcalc.getAvgInspirationVolume(),paramcalc.getInspirationFreqency());
             qDebug()<<"(paramcalc.getAvgTempIn()"<<paramcalc.getAvgTempIn()<<" paramcalc.getAvgTempOut()"<<paramcalc.getAvgTempOut()<<" paramcalc.getAvgInspirationVolume()"<<paramcalc.getAvgInspirationVolume();
         }
 
-    }*/
+    }
     ts_end++;
 }
 
@@ -249,10 +268,10 @@ void TSCurveBuffer::clean(){
     ts_tempIn.clear();
     ts_tempOut.clear();
     ts_integral.clear();
-    ts_volume.resize(18000);
-    ts_tempIn.resize(18000);
-    ts_tempOut.resize(18000);
-    ts_integral.resize(18000);
+    //    ts_volume.resize(38400);
+    //    ts_tempIn.resize(38400);
+    //    ts_tempOut.resize(38400);
+    //    ts_integral.resize(38400);
     paramcalc.reset();
 }
 
