@@ -65,6 +65,25 @@ void PlotterWidjet::xAxisChanged(QCPRange range)
     //ui->PlotHorizontalScrollBar->setPageStep(qRound(range.size()/l)); // adjust size of scroll bar slider
     //qDebug()<<"qRound(range.center()*l)"<<qRound(range.center()/l);
 }
+QVector<double > convertToDoubleVector(QVector<int> data){
+    QVector<double > result;
+    for(int i=0;i<data.size();i++){
+        result.push_back(static_cast<double>(data.at(i)));
+    }
+    return result;
+}
+
+void PlotterWidjet::setFullPatientGrapgicsData(VTT_Data data)
+{
+    this->reset();
+    QVector<QVector<double> > graph;
+    graph.push_back(convertToDoubleVector(data.volume));
+
+    graph.push_back(convertToDoubleVector(data.tempin));
+
+    graph.push_back(convertToDoubleVector(data.tempout));
+    this->appendData(graph);
+}
 
 void PlotterWidjet::appendData(QVector<QVector<double> > data)
 {

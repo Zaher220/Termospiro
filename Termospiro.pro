@@ -33,10 +33,11 @@ SOURCES += main.cpp\
     tools/tsvalidationtools.cpp \
     ADCDataReader.cpp \
     rawdataparser.cpp \
-    plotter.cpp \
     examscontroller.cpp \
     reportprinter.cpp \
-    plotterwidjet.cpp
+    plotterwidjet.cpp \
+    qcustomplot.cpp \
+    calibrationpkotterwidjet.cpp
 
 HEADERS  += \
     bdgod.h \
@@ -59,12 +60,12 @@ HEADERS  += \
     tools/tsvalidationtools.h \
     ADCDataReader.h \
     rawdataparser.h \
-    plotter.h \
     src/datatypes.h \
     examscontrollerl.h \
     reportprinter.h \
-    plotterwidjet.h
-
+    plotterwidjet.h \
+    qcustomplot.h \
+    calibrationpkotterwidjet.h
 
 FORMS    += \
     colibrateDialog.ui \
@@ -73,7 +74,9 @@ FORMS    += \
     tsprogressdialog.ui \
     tsresultsview.ui \
     tsview.ui \
-    tsvolsignalwidget.ui
+    tsvolsignalwidget.ui \
+    plotterwidjet.ui \
+    calibrationpkotterwidjet.ui
 
 RESOURCES += \
     iconResourse.qrc

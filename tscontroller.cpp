@@ -3,29 +3,18 @@
 #include "ui_tsprogressdialog.h"
 #include "ui_tsvolsignalwidget.h"
 #include <QtSql/QSqlRecord>
-#include <QMessageBox>
-#include <QTextCodec>
 #include <QDebug>
 #include "tools/tsvalidationtools.h"
 #include <QSqlDatabase>
 #include <QTranslator>
 #include <QApplication>
-#include <QResizeEvent>
-#include <QSqlError>
-#include <QSqlQuery>
 #include <QTime>
 #include <QPrinter>
 #include <QPrintDialog>
-
 #include <QDate>
-#include <math.h>
-#include <QDir>
-#include <fstream>
 #include <QDialog>
 #include <tsanalitics.h>
 #include <QSettings>
-#include <tsanalitics.h>
-#include <QTableWidget>
 #include <ui_tsprintview.h>
 #include <QPrintEngine>
 #include <tstempanalitic.h>
@@ -37,27 +26,21 @@ TSController::TSController(QWidget *parent):QMainWindow(parent)//,ui(new Ui::TSV
 {
     qDebug()<<"TSController::TSController";
     //QTextCodec::setCodecForTr(QTextCodec::codecForName("CP-1251"));
-    QSettings settings("settings.ini",QSettings::IniFormat);
+    QSettings * settings = new QSettings("settings.ini",QSettings::IniFormat);
 
     m_adc_reader = new ADCDataReader();
 
     ui.setupUi(this);
 
     m_plotter_widjet = new PlotterWidjet();
-    //openUser = false;
+    ui.PlotterAllwidget->layout()->addWidget(qobject_cast<QWidget*>(m_plotter_widjet));
 
-    m_plotter.setCurveBuffer(&curveBuffer);
+    m_calib_plotter = new CalibrationPkotterWidjet();
+    ui.VolumePlotterWidget->layout()->addWidget(qobject_cast<QWidget*>(m_calib_plotter));
 
-    curveBuffer.setReference(&settings);
-    m_plotter.setRecordingStarted(false);
+    curveBuffer.setReference(settings);
+
     recordingStarted = false;
-
-
-    m_plotter.setTempInInterval(curveBuffer.getTempInInterval());
-    m_plotter.setTempInAdaptive(1.0);
-    m_plotter.setTempOutInterval(curveBuffer.getTempOutInterval());
-    m_plotter.setTempOutAdaptive(1.0);
-
 
     ui.managmentBox->setVisible(false);
     ui.vertLabel->setVisible(false);
@@ -89,55 +72,38 @@ TSController::TSController(QWidget *parent):QMainWindow(parent)//,ui(new Ui::TSV
     connect(ui.fdName,SIGNAL(editingFinished()),this,SLOT(completePatientId()));
     connect(ui.date,SIGNAL(editingFinished()),this,SLOT(completePatientId()));
 
-
-    connect(ui.horizontalScrollBar,SIGNAL(valueChanged(int)),this,SLOT(scrollGraphics(int)));
     connect(ui.newExamButton,SIGNAL(clicked()),this,SLOT(createNewExam()));
     connect(ui.stopExam,SIGNAL(clicked()),this,SLOT(stopExam()));
 
-
     connect(&m_exam_cntrl, SIGNAL(selectedExam(VTT_Data)), this, SLOT(selectedExamination(VTT_Data)));
+
+    connect(&m_exam_cntrl, SIGNAL(selectedExam(VTT_Data)), m_plotter_widjet, SLOT(setFullPatientGrapgicsData(VTT_Data)));
+
     connect(&m_exam_cntrl, SIGNAL(reset()), &curveBuffer, SLOT(clean()));
 
-    connect(ui.tempInScaleSlider,SIGNAL(valueChanged(int)), &m_plotter, SLOT(scaleTempIn(int)));
-    connect(ui.tempOutScaleSlider,SIGNAL(valueChanged(int)), &m_plotter,SLOT(scaleTempOut(int)));
-    connect(ui.volumeScaleSlider,SIGNAL(valueChanged(int)), &m_plotter,SLOT(scaleVolume(int)));
-    connect(ui.horScaleSlider,SIGNAL(valueChanged(int)), &m_plotter,SLOT(scaleForHorizontal(int)));
-    connect(ui.horScaleSlider,SIGNAL(rangeChanged(int,int)),this,SLOT(changeScrollBarAfterScaling(int,int)));
-    connect(ui.tempInScroll,SIGNAL(valueChanged(int)), &m_plotter,SLOT(changeTempInScrollValue(int)));
     connect(ui.breakExamButton,SIGNAL(clicked()),this,SLOT(breakExam()));
     connect(ui.resultsButton,SIGNAL(clicked()),this,SLOT(processDataParams()));
 
     connect(ui.printButton,SIGNAL(clicked()),this,SLOT(printReport()));
+
     ui.resultsButton->setEnabled(true);
-    ui.backPatientProfileButton->installEventFilter(this);
-    ui.backPatientListButton->installEventFilter(this);
-    ui.openButton->installEventFilter(this);
-    ui.backCallibrateButton->installEventFilter(this);
 
     connect(m_adc_reader, SIGNAL(sendACQData(AdcDataMatrix)), &m_raw_data_parser, SLOT(setACQData(AdcDataMatrix)));
 
     ui.examsTableView->setEditTriggers(QTableView::NoEditTriggers);;
-
     ui.mainBox->setCurrentIndex(0);
-    m_plotter.setUi(&ui);
-    m_plotter.setParentWindow(this);
-    connect(&m_plotter, SIGNAL(stopACQU()), m_adc_reader, SLOT(stopADC()));
-
     m_exam_cntrl.setm_ui(&ui);
-    //connect(ui.backExamButton, SIGNAL(clicked()), this, SLOT(on_pressBuckButton()));
 }
 
 TSController::~TSController()
 {
     delete m_adc_reader;
     qDebug()<<"TSController::~TSController";
-    //delete ui;
 }
 
 void TSController::savePatientProfile()
 {
     m_exam_cntrl.savePatientProfile();
-
 }
 
 void TSController::calibrateVolume(){
@@ -195,8 +161,6 @@ void TSController::calibrateVolume(){
     dui.progressBar->setVisible(true);
     dui.acceptButton->setVisible(true);
     d.exec();*/
-
-
 }
 
 void TSController::calibrationFinished()
@@ -256,10 +220,6 @@ void TSController::stopCalibration()
 {
     m_adc_reader->stopADC();
     delete m_adc_reader;
-    //auto vol = curveBuffer.volumeVector();
-
-    m_plotter.stopPlottimgTimer();
-
     QSettings settings("settings.ini", QSettings::IniFormat);
     QDialog d(this);
     Ui::TSProgressDialog dui;
@@ -291,11 +251,8 @@ void TSController::stopCalibration()
         ui.startExam->setEnabled(true);
         ui.stopExam->setEnabled(true);
         curveBuffer.setEnd(0);
-        m_plotter.initPaintDevices();
-        m_plotter.plotNow();
     }
     curveBuffer.setEnd(0);
-    m_plotter.setMaxcVol(0);
     ui.volumeInfoLabel->setVisible(false);
     ui.tinInfoLabel->setVisible(false);
     ui.toutInfolabel->setVisible(false);
@@ -315,9 +272,6 @@ void TSController::rejectColibration()
     curveBuffer.setEnd(0);
     ui.startExam->setEnabled(true);
     ui.stopExam->setEnabled(true);
-
-    m_plotter.initPaintDevices();
-    m_plotter.plotNow();
 
     ui.managmentSpaser->setGeometry(QRect(0,0,350,2));
     ui.managmentBox->setVisible(true);
@@ -342,16 +296,7 @@ void TSController::startExam()
 
     m_adc_reader->startADC(0);
 
-    myTimer.start();
-    m_plotter.setRecordingStarted(true);
     recordingStarted = true;
-
-    m_plotter.setTempInScaleRate(1.0/5000);
-    m_plotter.setTempOutScaleRate(1.0/5000);
-    m_plotter.setVolumeScaleRate(1.0/5000);
-    m_plotter.setHorizontalStep(1.0);
-    m_plotter.initPaintDevices();
-    m_plotter.startPlottingTimer(100);
 
     mvlDialog = new QDialog(this);
     volWidget = new Ui::TSVolSignalWidget();
@@ -360,7 +305,6 @@ void TSController::startExam()
     mvlDialog->setModal(false);
     mvlDialog->show();
     ui.startExam->setEnabled(false);
-    ui.horizontalScrollBar->setEnabled(false);
 }
 
 void TSController::stopExam()
@@ -368,53 +312,14 @@ void TSController::stopExam()
     //qDebug()<<"TSController::stopExam";
     if(recordingStarted)
     {
-        m_plotter.stopPlottingTimer();
-
         m_adc_reader->stopADC();
 
         qDebug()<<"Stop exam";
         m_exam_cntrl.writeExamToDB(curveBuffer.volumeVector(), curveBuffer.tempInVector(), curveBuffer.tempOutVector(),
                                    curveBuffer.volumeConverts().at(1), curveBuffer.volumeConverts().at(0));
-        /*QSqlRecord record = examinationsModel->record();
-
-        QString val;
-
-        QVector<int> volume = curveBuffer.volumeVector();
-        for( int i = 0; i < volume.size(); i++ ){
-            val.append(QString::number(volume[i])+";");
-        }
-
-        record.setValue("volume",val);
-        val.clear();
-
-        QVector<int> tempIn = curveBuffer.tempInVector();
-        for( int i = 0; i < tempIn.size(); i++ ){
-            val.append(QString::number(tempIn[i])+";");
-        }
-
-        record.setValue("tempIn",val);
-        val.clear();
-
-        QVector<int> tempOut = curveBuffer.tempOutVector();
-        for( int i = 0; i < tempOut.size(); i++ ){
-            val.append(QString::number(tempOut[i])+";");
-        }
-
-        record.setValue("tempOut",val);
-        record.setValue("volZero",0);//curveBuffer.volumeColibration());
-        record.setValue("volIn",curveBuffer.volumeConverts().at(1));
-        record.setValue("volOut",curveBuffer.volumeConverts().at(0));
-        record.setValue("date",QDate::currentDate().toString("yyyy-MM-dd"));
-        record.setValue("time",QTime::currentTime().toString("hh:mm"));
-        if(!examinationsModel->insertRecord(-1,record))
-            qDebug()<<"exam insertError";*/
-        ui.horizontalScrollBar->setEnabled(true);
-
     }
 
-    ui.horizontalScrollBar->setEnabled(true);
     mvlDialog->close();
-    m_plotter.setRecordingStarted(false);
     recordingStarted = false;
 }
 
@@ -441,26 +346,12 @@ void TSController::completePatientId()
     ui.idEdit->setText(id);
 }
 
-void TSController::scrollGraphics(int value)
-{
-    // qDebug()<<"TSController::scrollGraphics";
-    if(curveBuffer.end() != 0)
-        curveBuffer.setEnd(m_plotter.getW()-35+value*m_plotter.getHorizontalStep()*10);
-    m_plotter.plotNow();
-}
-
 void TSController::createNewExam(){
     if ( m_adc_reader->isReady() == true ){
         qDebug()<<"TSController::createNewExam";
         ui.mainBox->setCurrentIndex(4);
-        m_plotter.setCH(ui.calibrateVolumeAnimation->height());
-        m_plotter.setCW(ui.calibrateVolumeAnimation->width());
-        m_plotter.resetPlotting();
         curveBuffer.clean();
         curveBuffer.setEnd(0);
-        //curveBuffer.setLenght(0);
-        m_plotter.setMaxcVol(0);
-        m_plotter.plotCalibration();//!!!
         calibrateVolume();
     }else{
         QMessageBox msgBox;
@@ -471,31 +362,6 @@ void TSController::createNewExam(){
         msgBox.setStandardButtons(QMessageBox::Ok);
         msgBox.setDefaultButton(QMessageBox::Ok);
         msgBox.exec();
-    }
-}
-
-void TSController::resizeEvent(QResizeEvent *evt)
-{
-    //qDebug()<<"TSController::resizeEvent";
-    m_plotter.initPaintDevices();
-    m_plotter.plotNow();
-}
-
-void TSController::changeScrollBarAfterScaling(int before, int after)
-{
-    // qDebug()<<"TSController::changeScrollBarAfterScaling";
-    if(after%2)
-        return;
-    int val = ui.horizontalScrollBar->value();
-    if(before>after)
-    {
-        ui.horizontalScrollBar->setMaximum(ui.horizontalScrollBar->maximum()/2);
-        ui.horizontalScrollBar->setValue(val/2);
-    }
-    else
-    {
-        ui.horizontalScrollBar->setMaximum(ui.horizontalScrollBar->maximum()*2);
-        ui.horizontalScrollBar->setValue(val*2);
     }
 }
 
@@ -510,7 +376,6 @@ QTableWidgetItem* TSController::getQTableWidgetItem(QVariant text){
 void TSController::breakExam()
 {
     //    qDebug()<<"TSController::breakExam";
-    m_plotter.stopPlottingTimer();
     m_adc_reader->stopADC();
 }
 
@@ -683,8 +548,8 @@ void TSController::printReport()
     double tempOutAdaptive = (float)myH/(toutInt[1]-toutInt[0]);
     double printerVolumeAdaptive = (float)myH/(volInt[1]-volInt[0]);
     //volumeAdaptive = (float)myH/(volInt[1]-volInt[0]);
-    tempInZ = h + ceil((float)(tinInt[1]+tinInt[0])*m_plotter.getTempInAdaptive()*tempInK/2);
-    tempOutZ = h + ceil((float)(toutInt[1]+toutInt[0])*m_plotter.getTempOutAdaptive()*tempOutK/2);
+    //!!!!!!tempInZ = h + ceil((float)(tinInt[1]+tinInt[0])*m_plotter.getTempInAdaptive()*tempInK/2);
+    //!!!!!!tempOutZ = h + ceil((float)(toutInt[1]+toutInt[0])*m_plotter.getTempOutAdaptive()*tempOutK/2);
     float volumeK =1;
 
 
@@ -727,7 +592,6 @@ void TSController::selectedExamination(VTT_Data data)
 {
 
     curveBuffer.appendData(data.volume, data.tempin, data.tempout);
-
     curveBuffer.setVolumeColibration(data.volZero, false);
 
     qDebug()<<"setVolumeConverts openExam "<<data.volOut<<" "<<data.volIn;
@@ -738,26 +602,11 @@ void TSController::selectedExamination(VTT_Data data)
     ui.stopExam->setEnabled(false);
     ui.mainBox->setCurrentIndex(5);
 
-    //ui.horizontalScrollBar->setMaximum((list.count()-ui.gVolume->width())/10);
-    ui.horizontalScrollBar->setMaximum((data.volume.size()-ui.gVolume->width())/10);
-    ui.horizontalScrollBar->setValue(0);
-    ui.horizontalScrollBar->setEnabled(true);
-    m_plotter.initPaintDevices();
-    curveBuffer.setEnd(m_plotter.getW()-35);
-
-    m_plotter.setTempInScaleRate(1.0/5000);
-    m_plotter.setTempOutScaleRate(1.0/5000);
-    m_plotter.setVolumeScaleRate(4.0/5000);
-    m_plotter.setHorizontalStep(1.0);
-
     ui.managmentSpaser->setGeometry(QRect(0,0,350,2));
     ui.managmentBox->setVisible(true);
     ui.managmentBox->setEnabled(true);
 
-    m_plotter.plotNow();
     processDataParams();
-    qDebug()<<"TableWidget: "<<ui.resultsTable->width()<<" "<<ui.resultsTable->height();
-    qDebug()<<"Button: "<<ui.startExam->width()<<" "<<ui.startExam->height();
 }
 
 void TSController::on_backCallibrateButton_clicked()

@@ -3,6 +3,7 @@
 
 #include <QWidget>
 #include "qcustomplot.h"
+#include "examscontrollerl.h"
 //#include "ui_plotterwidjet.h"
 namespace Ui {
 class PlotterWidjet;
@@ -20,6 +21,9 @@ public:
 private slots:
     void on_PlotHorizontalScrollBar_valueChanged(int value);
     void xAxisChanged(QCPRange range);
+
+    void setFullPatientGrapgicsData(VTT_Data data);
+
 private:
     void initGraphs(QCustomPlot *graph, QPen pen);
     Ui::PlotterWidjet *ui;

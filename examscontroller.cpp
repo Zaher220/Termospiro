@@ -298,7 +298,7 @@ void ExamsController::on_backPatientProfileButton_clicked(bool)
     m_ui->mainBox->setCurrentIndex(2);
     patientsModel->setFilter("");
     patientsModel->select();
-    m_ui->horizontalScrollBar->setEnabled(false);
+    //m_ui->horizontalScrollBar->setEnabled(false);
     qDebug()<<"Hellow click";
 }
 
@@ -308,7 +308,7 @@ void ExamsController::on_backPatientListButton_clicked(bool)
     m_ui->mainBox->setCurrentIndex(0);
     patientsModel->setFilter("");
     patientsModel->select();
-    m_ui->horizontalScrollBar->setEnabled(false);
+    //m_ui->horizontalScrollBar->setEnabled(false);
 }
 
 void ExamsController::on_openButton_clicked(bool)
@@ -317,7 +317,7 @@ void ExamsController::on_openButton_clicked(bool)
     m_ui->mainBox->setCurrentIndex(0);
     patientsModel->setFilter("");
     patientsModel->select();
-    m_ui->horizontalScrollBar->setEnabled(false);
+    //m_ui->horizontalScrollBar->setEnabled(false);
 }
 
 void ExamsController::setm_ui(Ui::TSView *ui)
