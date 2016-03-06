@@ -54,7 +54,7 @@ public:
     float tempInToDeg(int temp);
     float tempOutToDeg(int temp);
     int getLenght();
-    void clean();
+
     QColor volColor;
     QColor tinColor;
     QColor toutColor;
@@ -67,6 +67,7 @@ signals:
     void updateAverageData(int avgTempIn, int avgTempOut, int avgDo, int ChD);
     void finished();
 public slots:
+    void clean();
     void updateAvData(int avgTempIn, int avgTempOut, int avgDo, int ChD);
     void appendData(IntegerVector volume, IntegerVector tempin, IntegerVector tempout);
 private:

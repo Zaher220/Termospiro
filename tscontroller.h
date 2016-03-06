@@ -18,6 +18,8 @@
 #include "rawdataparser.h"
 #include "plotter.h"
 #include "examscontrollerl.h"
+#include "reportprinter.h"
+#include "plotterwidjet.h"
 
 namespace Ui {
 class TSView;
@@ -36,12 +38,11 @@ public:
     explicit TSController(QWidget *parent = 0);
     ~TSController();
 public slots:
-    void openPatientProfile(QModelIndex ind);
-    void editPatientProfile();
+
+    void selectedExamination(VTT_Data data);
+
     void savePatientProfile();
-    void rejectPatientProfile();
-    void deletePatient(int index);
-    void completePatientName(QString string);
+
     void completePatientId();
 
     void calibrateVolume();
@@ -52,11 +53,7 @@ public slots:
     void stopExam();
     void breakExam();
 
-    void openPatientList();
-
-    void openExam(QModelIndex ind);
     void createNewExam();
-    void deleteExam(int index);
 
     void showAverageData(int avgTempIn, int avgTempOut,int avgDO, int avgCHD);
     void scrollGraphics(int value);
@@ -71,12 +68,7 @@ protected:
     void openPrivateDB(QSqlRecord record);
 private slots:
 
-    void on_backPatientProfileButton_clicked();
-    void on_backPatientListButton_clicked();
-    void on_openButton_clicked();
-
     void on_backCallibrateButton_clicked();
-    void on_backExamButton_clicked();
     void getZeroSognalLevels();
 
 private:
@@ -84,7 +76,7 @@ private:
     RawDataParser m_raw_data_parser;
     TSCurveBuffer curveBuffer;
     Plotter m_plotter;
-    // PatientProfileControl m_profile_control;
+
 
     QWidget wpf;
     QDialog *mvlDialog;
@@ -92,22 +84,17 @@ private:
     Ui::TSView ui;
 
     Ui::TSVolSignalWidget *volWidget;
-    CurrentAction currentAction;
 
-    bool openUser;
     //Все для рисования
 
 
     bool recordingStarted;
-    //модели
-    //TSPatients *patientsModel;
-    //TSExaminations *examinationsModel;
+
     bool isInitialized;
     QTime myTimer;
     ExamsController m_exam_cntrl;
-
-    //QSqlDatabase patientsConnection;
-    //QSqlDatabase examinationsConnection;
+    ReportPrinter m_reports;
+    PlotterWidjet * m_plotter_widjet = nullptr;
 };
 
 #endif // TSVIEW_H

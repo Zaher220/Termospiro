@@ -9,11 +9,11 @@ QT       += core \
             printsupport\
             sql
 
+
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
 TARGET = Termospiro
 TEMPLATE = app
-
 
 SOURCES += main.cpp\
     bdgod.cpp \
@@ -34,7 +34,9 @@ SOURCES += main.cpp\
     ADCDataReader.cpp \
     rawdataparser.cpp \
     plotter.cpp \
-    examscontroller.cpp
+    examscontroller.cpp \
+    reportprinter.cpp \
+    plotterwidjet.cpp
 
 HEADERS  += \
     bdgod.h \
@@ -59,7 +61,9 @@ HEADERS  += \
     rawdataparser.h \
     plotter.h \
     src/datatypes.h \
-    examscontrollerl.h
+    examscontrollerl.h \
+    reportprinter.h \
+    plotterwidjet.h
 
 
 FORMS    += \
