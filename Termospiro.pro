@@ -9,7 +9,6 @@ QT       += core \
             printsupport\
             sql
 
-
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
 TARGET = Termospiro
@@ -37,7 +36,9 @@ SOURCES += main.cpp\
     reportprinter.cpp \
     plotterwidjet.cpp \
     qcustomplot.cpp \
-    calibrationpkotterwidjet.cpp
+    calibrationpkotterwidjet.cpp \
+    analyze/signalanalyzer.cpp \
+    analyze/volumevaluescalc.cpp
 
 HEADERS  += \
     bdgod.h \
@@ -65,7 +66,9 @@ HEADERS  += \
     reportprinter.h \
     plotterwidjet.h \
     qcustomplot.h \
-    calibrationpkotterwidjet.h
+    calibrationpkotterwidjet.h \
+    analyze/signalanalyzer.h \
+    analyze/volumevaluescalc.h
 
 FORMS    += \
     colibrateDialog.ui \

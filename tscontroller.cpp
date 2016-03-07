@@ -112,8 +112,6 @@ void TSController::calibrateVolume(){
     Ui::TSProgressDialog dui;
     dui.setupUi(&d);
 
-
-    //controller->setWindowFlags(Qt::WindowTitleHint | Qt::WindowMinimizeButtonHint|Qt::SubWindow);
     d.setWindowTitle(tr("Предупреждение"));
     dui.information->setText(tr("Идет подготовка..."));
     dui.acceptButton->setVisible(false);
@@ -292,7 +290,6 @@ void TSController::startExam()
     m_adc_reader = new ADCDataReader();
 
     connect(m_adc_reader, SIGNAL(sendACQData(AdcDataMatrix)), &m_raw_data_parser, SLOT(setACQData(AdcDataMatrix)));
-    //connect(&m_raw_data_parser, SIGNAL(sendNewData(IntegerVector, IntegerVector, IntegerVector)), &curveBuffer, SLOT(appendData(IntegerVector, IntegerVector, IntegerVector)));
 
     m_adc_reader->startADC(0);
 
@@ -590,7 +587,6 @@ void TSController::closeEvent(QCloseEvent *e){
 
 void TSController::selectedExamination(VTT_Data data)
 {
-
     curveBuffer.appendData(data.volume, data.tempin, data.tempout);
     curveBuffer.setVolumeColibration(data.volZero, false);
 
