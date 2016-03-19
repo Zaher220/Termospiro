@@ -3,7 +3,7 @@
 #include <vector>
 #include <QVector>
 
-typedef std::vector<std::vector<short>>  AdcDataMatrix;
+typedef QList<QVector<short>> ADCData;
 typedef QVector<int> IntegerVector;
 
 #endif // DATATYPES

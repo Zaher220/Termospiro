@@ -10,7 +10,7 @@ RawDataParser::~RawDataParser()
     fclose(out);
 }
 
-void RawDataParser::setACQData(AdcDataMatrix data)
+void RawDataParser::setACQData(ADCData data)
 {
     if ( data.size() > 3 ){
         QVector<int> vol, tempin, tempout;

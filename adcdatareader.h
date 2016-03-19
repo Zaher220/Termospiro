@@ -18,7 +18,7 @@ class ADCDataReader: public QObject
 public:
     explicit ADCDataReader(QObject *parent = 0);
     ~ADCDataReader();
-    AdcDataMatrix getACQData();
+    //AdcDataMatrix getACQData();
     int getSamples_number() const;
     void setSamples_number(int samples_number);
     bool isReady();
@@ -31,14 +31,15 @@ signals:
     void finished();
 
 
-    void sendACQData(AdcDataMatrix);
+    //void sendACQData(AdcDataMatrix);
+    void newData( ADCData );
     void done();
     void changeProgress(int);
 private:
     bool initADC();
     void ShowThreadErrorMessage(void);
     void TerminateApplication(QString ErrorString, bool TerminationFlag = false);
-    bool WaitingForRequestCompleted(OVERLAPPED *ReadOv);
+    bool WaitingForRequestCompleted(OVERLAPPED *ReadOv, LPDWORD byte_N);
     bool is_acq_started = false;
 
     // идентификатор потока ввода
@@ -76,14 +77,16 @@ private:
     //max возможное кол-во передаваемых отсчетов (кратное 32) для ф. ReadData и WriteData()
     //DWORD DataStep = 1024 * 1024;
     //DWORD DataStep = 8192;
-    DWORD DataStep = 512;
+    const DWORD ChannaleQuantity = 3;
+    DWORD DataStep = 512*ChannaleQuantity;
+    SHORT	ReadBuffer[512*3];//FIXME DEFINE ???
     //Число каналов
-    const DWORD ChannaleQuantity = 0x4;
+
     // столько блоков по DataStep отсчётов нужно собрать в файл
-    const WORD NBlockRead = 2;
+    //!!!const WORD NBlockRead = 2;
     // указатель на буфер для вводимых данных
-    SHORT	ReadBuffer[1024];
-    SHORT	*ReadBuffer1, *ReadBuffer2;
+
+    //SHORT	*ReadBuffer1, *ReadBuffer2;
 
     // номер ошибки при выполнении потока сбора данных
     WORD ThreadErrorNumber;
@@ -94,10 +97,11 @@ private:
 
 
     HANDLE hMutex ;
-    int m_samples_number = 1800000;
+    int m_samples_number = -1;//1800000;//FIXME похоже попытка мерить время АЦП - это не верно
     int m_samples_count = 0;
-    AdcDataMatrix data = AdcDataMatrix(MaxVirtualSoltsQuantity);
+    //AdcDataMatrix data = AdcDataMatrix(MaxVirtualSoltsQuantity);
     QThread *m_thread = nullptr;
     char ss1[8] ;
 };
+
 #endif

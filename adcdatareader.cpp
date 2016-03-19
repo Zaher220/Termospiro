@@ -11,8 +11,9 @@ ADCDataReader::ADCDataReader(QObject *parent):QObject(parent)
     char ss[] = "usb3000";
     strcpy(mod_name, ss);
 
-    ReadBuffer1 = new SHORT[NBlockRead * DataStep];
-    ReadBuffer2 = new SHORT[NBlockRead * DataStep];
+    //!!!ReadBuffer1 = new SHORT[/*NBlockRead **/ DataStep];
+    //!!!ReadBuffer2 = new SHORT[NBlockRead * DataStep];
+    //!
     strcpy(ss1, "usb3000");
 }
 
@@ -20,8 +21,8 @@ ADCDataReader::~ADCDataReader()
 {
     /*if (is_acq_started)
         stopADC();*/
-    delete[] ReadBuffer1;
-    delete[] ReadBuffer2;
+    //!!!delete[] ReadBuffer1;
+    //!!!delete[] ReadBuffer2;
 }
 
 bool ADCDataReader::initADC()
@@ -46,11 +47,12 @@ bool ADCDataReader::initADC()
         printf(" Rtusbapi.dll Version --> OK\n");
 
     // получим указатель на интерфейс модуля USB3000
-    char ss[] = "usb3000";
+    char ss[] = "usb3000";    
     char *module_name = ss1;
+
     //pModule = static_cast<IRTUSB3000 *>(RtCreateInstance(s));
+    //pModule = static_cast<IRTUSB3000 *>(RtCreateInstance("usb3000"));
     pModule = static_cast<IRTUSB3000 *>(RtCreateInstance(module_name));
-    //pModule = static_cast<IRTUSB3000 *>(RtCreateInstance(module_name));
     char *ptr = mod_name;
     //pModule = static_cast<IRTUSB3000 *>(RtCreateInstance(ptr));
     if (!pModule){
@@ -179,7 +181,11 @@ bool ADCDataReader::initADC()
     ip.ChannelsQuantity = ChannaleQuantity;					// четыре активных канала
     for (i = 0x0; i < ip.ChannelsQuantity; i++)
         ip.ControlTable[i] = (WORD)(i);
-    ip.InputRate = ReadRate;					// частота работы АЦП в кГц
+    //меньше 550 Гц ацп не умеет переключать каналы.
+    //Поэтому берём 3кГц - на канал получается 1кГц, а больше методом усреднения по десять получаем частоту измерения в 100 Гц
+    ip.InputRate = 3.0;//1.0;//ReadRate;					// частота работы АЦП в кГц
+
+    //ip.ChannelRate = 0.01;
     ip.InterKadrDelay = 0.0;					// межкадровая задержка - пока всегда устанавливать в 0.0
     ip.InputFifoBaseAddress = 0x0;  			// базовый адрес FIFO буфера АЦП
     ip.InputFifoLength = 0x3000;	 			// длина FIFO буфера АЦП
@@ -210,7 +216,7 @@ bool ADCDataReader::initADC()
     return true;
 }
 
-bool ADCDataReader::WaitingForRequestCompleted(OVERLAPPED *ReadOv)
+bool ADCDataReader::WaitingForRequestCompleted(OVERLAPPED *ReadOv, LPDWORD byte_N)
 {
     DWORD ReadBytesTransferred;
     int count = 100;
@@ -218,7 +224,7 @@ bool ADCDataReader::WaitingForRequestCompleted(OVERLAPPED *ReadOv)
     {
         if ( !is_acq_started )
             return false;
-        if (GetOverlappedResult(ModuleHandle, ReadOv, &ReadBytesTransferred, FALSE)){
+        if (GetOverlappedResult(ModuleHandle, ReadOv, byte_N, FALSE)){
             break;
         }
         else
@@ -227,7 +233,7 @@ bool ADCDataReader::WaitingForRequestCompleted(OVERLAPPED *ReadOv)
                 return false;
             }
             else{
-                count--;
+                //!!!count--;
                 //if (kbhit()){
                 //                if(count == 0){
                 //                    ThreadErrorNumber = 0x1;
@@ -333,6 +339,8 @@ void ADCDataReader::TerminateApplication(QString ErrorString, bool TerminationFl
 void ADCDataReader::startADC(int samples_number)
 {
     is_acq_started = true;
+
+    setSamples_number(samples_number);
 
     if( m_thread != nullptr ){
         if ( m_thread->isRunning() ){
@@ -451,68 +459,78 @@ void ADCDataReader::processADC()
         }
 
     // теперь запускаем ввод данных
+
+    DWORD q=0;
     if (pModule->START_READ())
     {
         // цикл сбора данных
-        i = 0x1;
-        //i = 0x0;
+        //i = 0x1;
+        i = 0;
         m_samples_count = 0;
+
+        ADCData data;
+
+
+        for(int i=0; i<3; i++){
+            data.append(QVector<short>());
+        }
+
+
         while (is_acq_started && (m_samples_number == -1 || m_samples_count <= m_samples_number) ){
             //for (i = 0x1; i < NBlockRead; i++)
             //{
 
             RequestNumber ^= 0x1;
             // сделаем запрос на очередную порции данных
-            if (!pModule->ReadData(ReadBuffer + i*DataStep, &DataStep, &BytesTransferred[RequestNumber], &ReadOv[RequestNumber]))
+            if (!pModule->ReadData(ReadBuffer /*!!!+ i*DataStep*/, &DataStep, &BytesTransferred[RequestNumber], &ReadOv[RequestNumber]))
+            //if (!pModule->ReadData(ReadBuffer + i*DataStep, &DataStep, &q, &ReadOv[RequestNumber]))
                 if (GetLastError() != ERROR_IO_PENDING) {
                     ThreadErrorNumber = 0x2;
                     // continue;
                     break;
                 }
             // ждём окончания операции сбора очередной порции данных
-            if (!WaitingForRequestCompleted(&ReadOv[RequestNumber ^ 0x1])){
+            if (!WaitingForRequestCompleted(&ReadOv[RequestNumber ^ 0x1], &BytesTransferred[RequestNumber])){
                 //continue;
                 break;
             }
 
-            i++;
+
 
             //if ( i == NBlockRead ){
             //for (int k = 0; k < DataStep * i; k += MaxVirtualSoltsQuantity){
             qDebug()<<"RequestNumber"<<RequestNumber;
-            qDebug()<<"BytesTransferred"<< BytesTransferred[RequestNumber];
+            qDebug()<<"BytesTransferred"<< BytesTransferred[RequestNumber]<<DataStep;
 
-            //qDebug<<ReadBuffer;
-            //for (int k = 0; k < BytesTransferred[RequestNumber]; k += MaxVirtualSoltsQuantity){
-            for (int k = 0; k < DataStep ; k += MaxVirtualSoltsQuantity){
-                data[0].push_back(ReadBuffer[k]);
-                data[1].push_back(ReadBuffer[k+1]);
-                data[2].push_back(ReadBuffer[k+2]);
-                data[3].push_back(ReadBuffer[k+3]);
-            }
-            //            for(int k=0;k<data[0].size();k++)
-            //                qDebug()<<data[0][k];
-            qDebug()<<data[0].size();
-            m_samples_count += data[0].size();
-            memset(ReadBuffer, 0, NBlockRead * DataStep );
-            /*if (ReadBuffer == ReadBuffer1){
-                ReadBuffer = ReadBuffer2;
-                memset(ReadBuffer2, 0, NBlockRead * DataStep );
-                //i = 0x1;//почему не равно нулю
-                i = 0x0;
-            }
-            else{
-                ReadBuffer = ReadBuffer1;
-                memset(ReadBuffer1, 0, NBlockRead * DataStep );
-                //i = 0x1;//почему не равно нулю
-                i = 0x0;
-            }*/
+            if(i>=1){
+                for (int k = 0; k < DataStep/*!!!BytesTransferred[RequestNumber]*/; k += ChannaleQuantity*10){ //FIXME нужно получать 1 точку из 10 усреднением
+                    data[0].append(ReadBuffer[k]);
+                    data[1].append(ReadBuffer[k+1]);
+                    data[2].append(ReadBuffer[k+2]);
+                    //data[3].push_back(ReadBuffer[k+3]);
+                }
+                m_samples_count += data[0].size();
+                memset(ReadBuffer, 0, /*!!!NBlockRead **/ DataStep );
+                /*if (ReadBuffer == ReadBuffer1){
+                    ReadBuffer = ReadBuffer2;
+                    memset(ReadBuffer2, 0, NBlockRead * DataStep );
+                    //i = 0x1;//почему не равно нулю
+                    i = 0x0;
+                }
+                else{
+                    ReadBuffer = ReadBuffer1;
+                    memset(ReadBuffer1, 0, NBlockRead * DataStep );
+                    //i = 0x1;//почему не равно нулю
+                    i = 0x0;
+                }*/
 
-            emit sendACQData(data);
-            for(int k=0 ; k < 4; k++)
-                data[k].clear();
+                emit newData(data);
+                for(int k=0 ; k < data.size(); k++)
+                    data[k].clear();
+            }
+            i++;
             //i = 0x1;//почему не равно нулю
-            i = 0x0;
+            //i = 0x0;
             //}
         }
 
@@ -520,7 +538,7 @@ void ADCDataReader::processADC()
         if (!ThreadErrorNumber)
         {
             RequestNumber ^= 0x1;
-            WaitingForRequestCompleted(&ReadOv[RequestNumber ^ 0x1]);
+            WaitingForRequestCompleted(&ReadOv[RequestNumber ^ 0x1], &BytesTransferred[RequestNumber]);
         }
     }
     else {
@@ -558,7 +576,7 @@ void ADCDataReader::processADC()
     return;
 }
 
-AdcDataMatrix ADCDataReader::getACQData()
+/*AdcDataMatrix ADCDataReader::getACQData()
 {
     AdcDataMatrix tmp_data;
     //WaitForSingleObject(hMutex, INFINITE);
@@ -567,7 +585,7 @@ AdcDataMatrix ADCDataReader::getACQData()
         data[i].clear();
     // ReleaseMutex(hMutex);
     return tmp_data;
-}
+}*/
 
 bool ADCDataReader::isReady()
 {

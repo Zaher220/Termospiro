@@ -371,29 +371,33 @@ void TSController::rejectColibration()
 void TSController::startExam()
 {
     ui.volumeInfoLabel->setText(tr("ДО=0")
-                                +tr(" Л\nЧД=0"));
-    ui.tinInfoLabel->setText("Tin=0 'C");
-    ui.toutInfolabel->setText("Tout=0 'C");
-    ui.volumeInfoLabel->setVisible(true);
-    ui.tinInfoLabel->setVisible(true);
-    ui.toutInfolabel->setVisible(true);
-    curveBuffer.clean();
+                                   +tr(" Л\nЧД=0"));
+       ui.tinInfoLabel->setText("Tin=0 'C");
+       ui.toutInfolabel->setText("Tout=0 'C");
+       ui.volumeInfoLabel->setVisible(true);
+       ui.tinInfoLabel->setVisible(true);
+       ui.toutInfolabel->setVisible(true);
+       curveBuffer.clean();
 
-    m_adc_reader = new ADCDataReader();
+       m_adc_reader = new ADCDataReader();
 
-    connect(m_adc_reader, SIGNAL(sendACQData(AdcDataMatrix)), &m_raw_data_parser, SLOT(setACQData(AdcDataMatrix)));
+       //connect(m_adc_reader, SIGNAL(sendACQData(AdcDataMatrix)), &m_raw_data_parser, SLOT(setACQData(AdcDataMatrix)));
+       //connect(&m_raw_data_parser, SIGNAL(sendNewData(IntegerVector, IntegerVector, IntegerVector)), &curveBuffer, SLOT(appendData(IntegerVector, IntegerVector, IntegerVector)));
+       connect(m_adc_reader, SIGNAL(newData( ADCData )), this, SLOT(ExamADCNewData( ADCData )) );
 
-    m_adc_reader->startADC(0);
+       m_adc_reader->startADC(-1);//1800000;//FIXME похоже попытка мерить время АЦП - это не верно
 
-    recordingStarted = true;
+       //myTimer.start();
+       //m_plotter.setRecordingStarted(true);
+       recordingStarted = true;
 
-    mvlDialog = new QDialog(this);
-    volWidget = new Ui::TSVolSignalWidget();
-    volWidget->setupUi(mvlDialog);
-    volWidget->MVL->setText("0%");
-    mvlDialog->setModal(false);
-    mvlDialog->show();
-    ui.startExam->setEnabled(false);
+       /*mvlDialog = new QDialog(this);
+       volWidget = new Ui::TSVolSignalWidget();
+       volWidget->setupUi(mvlDialog);
+       volWidget->MVL->setText("0%");
+       mvlDialog->setModal(false);
+       mvlDialog->show();
+       ui.startExam->setEnabled(false);*/
 }
 
 void TSController::stopExam()

@@ -16,7 +16,7 @@ signals:
     void changeProgress(int);
     void sendNewData(QVector<int>, QVector<int>, QVector<int>);
 public slots:
-    void  setACQData(AdcDataMatrix data);
+    void  setACQData(ADCData data);
 private:
     FILE* out;
 };
