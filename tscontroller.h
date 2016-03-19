@@ -85,6 +85,7 @@ private:
     CalibrationPkotterWidjet * m_calib_plotter = nullptr;
     VolumeValuesCalc * m_volumes_calc = nullptr;
     SignalAnalyzer * m_signal_analyzer = nullptr;
+    QThread *m_thread = nullptr;
 };
 
 #endif // TSVIEW_H

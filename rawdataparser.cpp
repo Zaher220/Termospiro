@@ -12,7 +12,7 @@ RawDataParser::~RawDataParser()
 
 void RawDataParser::setACQData(ADCData data)
 {
-    if ( data.size() > 3 ){
+    if ( data.size() >= 3 ){
         QVector<int> vol, tempin, tempout;
         for(int i = 0; i < data[0].size(); i++){
             vol.push_back(data[0][i]);

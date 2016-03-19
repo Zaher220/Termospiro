@@ -17,6 +17,7 @@ public:
     explicit PlotterWidjet(QWidget *parent = 0);
     ~PlotterWidjet();
     void appendData(QVector<QVector<double > > data);
+    void appendIntData(QVector<int> volume, QVector<int> tempin, QVector<int> tempout);
     void reset();
 private slots:
     void on_PlotHorizontalScrollBar_valueChanged(int value);

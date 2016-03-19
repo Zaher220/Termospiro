@@ -503,7 +503,7 @@ void ADCDataReader::processADC()
             qDebug()<<"BytesTransferred"<< BytesTransferred[RequestNumber]<<DataStep;
 
             if(i>=1){
-                for (int k = 0; k < DataStep/*!!!BytesTransferred[RequestNumber]*/; k += ChannaleQuantity*10){ //FIXME нужно получать 1 точку из 10 усреднением
+                for (int k = 0; k < DataStep/*!!!BytesTransferred[RequestNumber]*/; k += ChannaleQuantity){ //FIXME нужно получать 1 точку из 10 усреднением
                     data[0].append(ReadBuffer[k]);
                     data[1].append(ReadBuffer[k+1]);
                     data[2].append(ReadBuffer[k+2]);

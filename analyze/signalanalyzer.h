@@ -8,6 +8,8 @@
 #include "datatypes.h"
 #include "volumevaluescalc.h"
 #include "examscontrollerl.h"
+#include <QMutex>
+#include <QMutexLocker>
 
 class SignalAnalyzer : public QObject
 {
@@ -23,6 +25,7 @@ signals:
     void Inhalations(QVector<ing>);
 public slots:
     void addRawData(QVector<int> * signal);
+    void addMultiplyRawData(QVector<int> volume, QVector<int> tempin, QVector<int> tempout);
     void setFullPatientData(VTT_Data data);
 private:
     QVector<double> median(QVector<int> *signal, int start, int end, int period);
@@ -38,6 +41,7 @@ private:
     int period = 15;
     int zero_level = 1540;
     int zero_sigma = 15;
+    QMutex m_mutex;
     //VolumeValuesCalc m_vol_calc;
 
 };

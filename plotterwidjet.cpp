@@ -47,14 +47,14 @@ PlotterWidjet::~PlotterWidjet()
 void PlotterWidjet::on_PlotHorizontalScrollBar_valueChanged(int value)
 {
     //if (  (qAbs(ui->PlotWidjet_1->xAxis->range().center() - value) / K > l  )){
-        ui->PlotWidjet_1->xAxis->setRange(value , ui->PlotWidjet_1->xAxis->range().size(), Qt::AlignCenter);
-        ui->PlotWidjet_1->replot();
+    ui->PlotWidjet_1->xAxis->setRange(value , ui->PlotWidjet_1->xAxis->range().size(), Qt::AlignCenter);
+    ui->PlotWidjet_1->replot();
 
-        ui->PlotWidjet_2->xAxis->setRange(value , ui->PlotWidjet_2->xAxis->range().size(), Qt::AlignCenter);
-        ui->PlotWidjet_2->replot();
+    ui->PlotWidjet_2->xAxis->setRange(value , ui->PlotWidjet_2->xAxis->range().size(), Qt::AlignCenter);
+    ui->PlotWidjet_2->replot();
 
-        ui->PlotWidjet_3->xAxis->setRange(value , ui->PlotWidjet_3->xAxis->range().size(), Qt::AlignCenter);
-        ui->PlotWidjet_3->replot();
+    ui->PlotWidjet_3->xAxis->setRange(value , ui->PlotWidjet_3->xAxis->range().size(), Qt::AlignCenter);
+    ui->PlotWidjet_3->replot();
     //}
 }
 
@@ -120,12 +120,38 @@ void PlotterWidjet::appendData(QVector<QVector<double> > data)
 
     ui->PlotHorizontalScrollBar->setRange(0, m_vol.size());
     qDebug()<<"ui->PlotHorizontalScrollBar min"<<ui->PlotHorizontalScrollBar->minimum();
-qDebug()<<"ui->PlotHorizontalScrollBar max"<<ui->PlotHorizontalScrollBar->maximum();
-qDebug()<<"ui->PlotHorizontalScrollBar value"<<ui->PlotHorizontalScrollBar->value();
+    qDebug()<<"ui->PlotHorizontalScrollBar max"<<ui->PlotHorizontalScrollBar->maximum();
+    qDebug()<<"ui->PlotHorizontalScrollBar value"<<ui->PlotHorizontalScrollBar->value();
 
     ui->PlotWidjet_1->replot();
     ui->PlotWidjet_2->replot();
     ui->PlotWidjet_3->replot();
+}
+
+void PlotterWidjet::appendIntData(QVector<int> volume, QVector<int> tempin, QVector<int> tempout)
+{
+    //qDebug()<<"---getData adc"<<data.size();
+    QVector<QVector<double>> plotData;
+    QVector<QVector<int>> data;
+    data.push_back(volume);
+    data.push_back(tempin);
+    data.push_back(tempout);
+
+    plotData.resize(data.size());
+    for(int i=0; i<data.size(); i++){
+        QVector<double> dataGraph;
+        int axisSize = data.at(i).size();
+        qDebug()<<"--adc ch size"<<i<<axisSize;
+        dataGraph.resize( axisSize );
+        for(int n=0; n<axisSize; n++){
+            dataGraph[n] = static_cast<double> (data.at(i).at(n));
+            if(n==2 || n ==24)
+                qDebug()<<"n"<<n<<data.at(i).at(n)<<dataGraph.at(n);
+        }
+        plotData[i] = dataGraph;
+    }
+    this->appendData(plotData);
+    //m_plotter_widjet->appendData( plotData );
 }
 
 void PlotterWidjet::reset()

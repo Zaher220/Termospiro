@@ -38,10 +38,15 @@ TSController::TSController(QWidget *parent):QMainWindow(parent)//,ui(new Ui::TSV
     m_calib_plotter = new CalibrationPkotterWidjet();
     ui.VolumePlotterWidget->layout()->addWidget(qobject_cast<QWidget*>(m_calib_plotter));
 
+    m_thread = new QThread();
+
 
     m_volumes_calc = new VolumeValuesCalc();
 
     m_signal_analyzer = new SignalAnalyzer();
+
+    m_volumes_calc->moveToThread(m_thread);
+    m_signal_analyzer->moveToThread(m_thread);
 
     connect(m_signal_analyzer, SIGNAL(Inhalations(QVector<ing>)), m_volumes_calc, SLOT(setIngs(QVector<ing>)));
 
@@ -50,6 +55,11 @@ TSController::TSController(QWidget *parent):QMainWindow(parent)//,ui(new Ui::TSV
 
     connect(&m_exam_cntrl, SIGNAL(selectedExam(VTT_Data)), m_signal_analyzer, SLOT(setFullPatientData(VTT_Data)));
 
+
+    connect(&m_raw_data_parser, SIGNAL(sendNewData(QVector<int>,QVector<int>,QVector<int>)), m_signal_analyzer, SLOT(addMultiplyRawData(QVector<int>,QVector<int>,QVector<int>)));
+
+
+    m_thread->start();
 
     curveBuffer.setReference(settings);
 
@@ -102,8 +112,6 @@ TSController::TSController(QWidget *parent):QMainWindow(parent)//,ui(new Ui::TSV
     connect(ui.printButton,SIGNAL(clicked()),this,SLOT(printReport()));
 
     ui.resultsButton->setEnabled(true);
-
-    connect(m_adc_reader, SIGNAL(sendACQData(AdcDataMatrix)), &m_raw_data_parser, SLOT(setACQData(AdcDataMatrix)));
 
     ui.examsTableView->setEditTriggers(QTableView::NoEditTriggers);;
     ui.mainBox->setCurrentIndex(0);
@@ -288,11 +296,11 @@ void TSController::setSignalParameters(parameters params)
             AvgRoundTime=0, AvgTempIn=0, AvgTempOut=0, AvgTempInMinusAvgTempOut=0,  BreathingVolume=0, MVL=0, MinuteVentilation=0;
     float InspirationFrequency = 0;
 
-//    QVector<int> volume = curveBuffer.volumeVector();
-//    QVector<int> temp_in = curveBuffer.tempInVector();
-//    QVector<int> temp_out = curveBuffer.tempOutVector();
+    //    QVector<int> volume = curveBuffer.volumeVector();
+    //    QVector<int> temp_in = curveBuffer.tempInVector();
+    //    QVector<int> temp_out = curveBuffer.tempOutVector();
 
-//    VolumeSolver* vs = new VolumeSolver(volume,temp_in,temp_out);
+    //    VolumeSolver* vs = new VolumeSolver(volume,temp_in,temp_out);
 
     AvgExpirationSpeed = params.av_speed;//vs->getAverageExpirationSpeed();
     qtw->setItem(1,0,getQTableWidgetItem(tr("Средняя скорость выдоха(л/с)")));
@@ -371,27 +379,27 @@ void TSController::rejectColibration()
 void TSController::startExam()
 {
     ui.volumeInfoLabel->setText(tr("ДО=0")
-                                   +tr(" Л\nЧД=0"));
-       ui.tinInfoLabel->setText("Tin=0 'C");
-       ui.toutInfolabel->setText("Tout=0 'C");
-       ui.volumeInfoLabel->setVisible(true);
-       ui.tinInfoLabel->setVisible(true);
-       ui.toutInfolabel->setVisible(true);
-       curveBuffer.clean();
+                                +tr(" Л\nЧД=0"));
+    ui.tinInfoLabel->setText("Tin=0 'C");
+    ui.toutInfolabel->setText("Tout=0 'C");
+    ui.volumeInfoLabel->setVisible(true);
+    ui.tinInfoLabel->setVisible(true);
+    ui.toutInfolabel->setVisible(true);
+    curveBuffer.clean();
 
-       m_adc_reader = new ADCDataReader();
+    m_adc_reader = new ADCDataReader();
 
-       //connect(m_adc_reader, SIGNAL(sendACQData(AdcDataMatrix)), &m_raw_data_parser, SLOT(setACQData(AdcDataMatrix)));
-       //connect(&m_raw_data_parser, SIGNAL(sendNewData(IntegerVector, IntegerVector, IntegerVector)), &curveBuffer, SLOT(appendData(IntegerVector, IntegerVector, IntegerVector)));
-       connect(m_adc_reader, SIGNAL(newData( ADCData )), this, SLOT(ExamADCNewData( ADCData )) );
+    connect(m_adc_reader, SIGNAL(newData(ADCData)), &m_raw_data_parser, SLOT(setACQData(ADCData)));
+    //connect(&m_raw_data_parser, SIGNAL(sendNewData(IntegerVector, IntegerVector, IntegerVector)), &curveBuffer, SLOT(appendData(IntegerVector, IntegerVector, IntegerVector)));
+    //connect(m_adc_reader, SIGNAL(newData( ADCData )), this, SLOT(ExamADCNewData( ADCData )) );
 
-       m_adc_reader->startADC(-1);//1800000;//FIXME похоже попытка мерить время АЦП - это не верно
+    m_adc_reader->startADC(-1);//1800000;//FIXME похоже попытка мерить время АЦП - это не верно
 
-       //myTimer.start();
-       //m_plotter.setRecordingStarted(true);
-       recordingStarted = true;
+    //myTimer.start();
+    //m_plotter.setRecordingStarted(true);
+    recordingStarted = true;
 
-       /*mvlDialog = new QDialog(this);
+    /*mvlDialog = new QDialog(this);
        volWidget = new Ui::TSVolSignalWidget();
        volWidget->setupUi(mvlDialog);
        volWidget->MVL->setText("0%");

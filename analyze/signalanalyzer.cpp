@@ -38,34 +38,48 @@ void SignalAnalyzer::setFinderPrefs(FinderPrefs prefs)
 
 void SignalAnalyzer::addRawData(QVector<int> *signal)
 {
+    //QMutexLocker lk(&m_mutex);
     int start = 0;
     if ( m_raw_signal.size() != 0 )
-        start = m_raw_signal.size() - 1;
+        start = m_raw_signal.size() - period + 1;
 
     m_raw_signal.append(*signal);
 
-    int end = 0;
-    end = m_raw_signal.size() - 1;
+    int end = m_raw_signal.size();
 
     QVector<double> data;
     data = median(&m_raw_signal, start, end, period);
-    m_median_signal.erase(m_median_signal.begin() + start, m_median_signal.end());//Удалим те данные которые будут пересчитаны
+    //if(m_median_signal.size() != 0)
+        //m_median_signal.erase(m_median_signal.begin() + start, m_median_signal.end());//Удалим те данные которые будут пересчитаны
     m_median_signal.append(data);
+
+
+    //    m_median_signal.clear();
+    //    m_clean_signal.clear();
+    //    m_int_signal.clear();
+    //    m_ings.clear();
+    //    data = median(&m_raw_signal, 0, end, period);
+    //    m_median_signal = data;
 
     clearSignal(start);
     findIng(start);
 
     emit Inhalations(m_ings);
+    qDebug()<<"m_raw_signal size"<<m_raw_signal.size();
 
+    //    QTime tm;
+    //    tm.start();
 
-//    QTime tm;
-//    tm.start();
-
-//    m_vol_calc.setIngs(m_ings);
-//    auto ps = m_vol_calc.getParams();
-//      qDebug()<<"tm.elapsed() msecs"<<tm.elapsed();
-//    ps.debug();
+    //    m_vol_calc.setIngs(m_ings);
+    //    auto ps = m_vol_calc.getParams();
+    //      qDebug()<<"tm.elapsed() msecs"<<tm.elapsed();
+    //    ps.debug();
     //    qDebug()<<"Stop";
+}
+
+void SignalAnalyzer::addMultiplyRawData(QVector<int> volume, QVector<int> tempin, QVector<int> tempout)
+{
+    this->addRawData(&volume);
 }
 
 void SignalAnalyzer::setFullPatientData(VTT_Data data)
@@ -84,33 +98,37 @@ void SignalAnalyzer::setFullPatientData(VTT_Data data)
 QVector<double> SignalAnalyzer::median(QVector<int> *signal, int start, int end, int period)
 {
 
-    if( signal->size() < start || signal->size() < end ){//начало или конец выходят за размер данных
-        return QVector<double>();
-    }
-    QVector<double> result(end-start);
+    //    if( signal->size() < start || signal->size() < end ){//начало или конец выходят за размер данных
+    //        return QVector<double>();
+    //    }
+    QVector<double> result;//(end-start);
 
     QVector<double> temp(period);//Временный массив для сортировки данных при расчете медианы
     double med = 0;//медиана
     for(int i = start; i < end - period; i++){
         for(int k = 0; k < period; k++ ){
             temp[k] = signal->at(i+k);
+            //temp[k] = m_raw_signal->at(i+k);
         }
         //memcpy(temp.data(), signal->data(), period*sizeof(int));
         qSort(temp);
-        if( temp.size()%2 == 0 ){
-            med = ((double)temp.at(period/2) + (double)temp.at(period/2+1)) / 2;
+        if( temp.size() % 2 == 0 ){
+            med = ((double)temp.at(period / 2) + (double)temp.at(period / 2 + 1)) / 2;
         }else{
-            med = temp.at(period/2+1);
+            med = temp.at(period / 2 + 1);
         }
-        result[i] = med;
+        //result[i] = med;
+        result.push_back(med);
     }
     return result;
-
 }
 
 void SignalAnalyzer::clearSignal(int start)/*Удалим нули т.е. промежутки когда человек не выдыхает*/
 {
-    m_clean_signal.erase(m_clean_signal.begin() + start, m_clean_signal.end());
+    if(start < m_clean_signal.size()){
+
+        m_clean_signal.erase(m_clean_signal.begin() + start, m_clean_signal.end());
+    }
 
     for(int i = start; i < m_median_signal.size(); i++){
         if( zero_level - m_median_signal.at(i)  < 0 || abs(zero_level - m_median_signal.at(i)) < zero_sigma ){//всё что в окрестности нулевого уровня или выше прировняем к 0 уровню
@@ -118,7 +136,7 @@ void SignalAnalyzer::clearSignal(int start)/*Удалим нули т.е. про
         }else{
             m_clean_signal.push_back( m_median_signal.at(i) );
         }
-        m_clean_signal[i] -= zero_level;
+        //m_clean_signal[i] -= zero_level;
     }
 }
 
