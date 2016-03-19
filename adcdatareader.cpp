@@ -13,6 +13,7 @@ ADCDataReader::ADCDataReader(QObject *parent):QObject(parent)
 
     ReadBuffer1 = new SHORT[NBlockRead * DataStep];
     ReadBuffer2 = new SHORT[NBlockRead * DataStep];
+    strcpy(ss1, "usb3000");
 }
 
 ADCDataReader::~ADCDataReader()
@@ -46,9 +47,9 @@ bool ADCDataReader::initADC()
 
     // получим указатель на интерфейс модуля USB3000
     char ss[] = "usb3000";
-    char *module_name = ss;
+    char *module_name = ss1;
     //pModule = static_cast<IRTUSB3000 *>(RtCreateInstance(s));
-    pModule = static_cast<IRTUSB3000 *>(RtCreateInstance("usb3000"));
+    pModule = static_cast<IRTUSB3000 *>(RtCreateInstance(module_name));
     //pModule = static_cast<IRTUSB3000 *>(RtCreateInstance(module_name));
     char *ptr = mod_name;
     //pModule = static_cast<IRTUSB3000 *>(RtCreateInstance(ptr));

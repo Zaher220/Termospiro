@@ -14,6 +14,8 @@ void VolumeValuesCalc::setIngs(QVector<ing> ings)
 parameters VolumeValuesCalc::getParams()
 {
     parameters ps;
+    if(m_ings.size()==0)
+        return ps;
     ps.all_volume = all_volume(m_ings);
     ps.av_speed = av_speed(m_ings);
     ps.max_speed = this->max_speed(m_ings);

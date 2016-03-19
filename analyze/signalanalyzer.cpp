@@ -55,7 +55,7 @@ void SignalAnalyzer::addRawData(QVector<int> *signal)
     clearSignal(start);
     findIng(start);
 
-    emit Inhalations(m_ings)
+    emit Inhalations(m_ings);
 
 
 //    QTime tm;
@@ -65,7 +65,20 @@ void SignalAnalyzer::addRawData(QVector<int> *signal)
 //    auto ps = m_vol_calc.getParams();
 //      qDebug()<<"tm.elapsed() msecs"<<tm.elapsed();
 //    ps.debug();
-//    qDebug()<<"Stop";
+    //    qDebug()<<"Stop";
+}
+
+void SignalAnalyzer::setFullPatientData(VTT_Data data)
+{
+    m_raw_signal.clear();
+    m_median_signal.clear();
+    m_clean_signal.clear();
+    m_int_signal.clear();
+    m_ings.clear();
+    QVector<int> vec;
+    for(int i=0;i<data.volume.size();i++)
+        vec.push_back(data.volume.at(i)+zero_level);
+    this->addRawData(&vec);
 }
 
 QVector<double> SignalAnalyzer::median(QVector<int> *signal, int start, int end, int period)

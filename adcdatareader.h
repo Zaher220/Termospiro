@@ -98,5 +98,6 @@ private:
     int m_samples_count = 0;
     AdcDataMatrix data = AdcDataMatrix(MaxVirtualSoltsQuantity);
     QThread *m_thread = nullptr;
+    char ss1[8] ;
 };
 #endif

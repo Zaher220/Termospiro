@@ -17,6 +17,9 @@
 #include "plotterwidjet.h"
 #include "calibrationpkotterwidjet.h"
 
+#include "analyze/signalanalyzer.h"
+#include "analyze/volumevaluescalc.h"
+
 namespace Ui {
 class TSView;
 class TSProgressDialog;
@@ -54,6 +57,8 @@ public slots:
     void processDataParams();
     void printReport();
     void stopCalibration();
+
+    void setSignalParameters(parameters params);
 protected:
     void closeEvent(QCloseEvent *e);
     void openPrivateDB(QSqlRecord record);
@@ -78,6 +83,8 @@ private:
     ReportPrinter m_reports;
     PlotterWidjet * m_plotter_widjet = nullptr;
     CalibrationPkotterWidjet * m_calib_plotter = nullptr;
+    VolumeValuesCalc * m_volumes_calc = nullptr;
+    SignalAnalyzer * m_signal_analyzer = nullptr;
 };
 
 #endif // TSVIEW_H

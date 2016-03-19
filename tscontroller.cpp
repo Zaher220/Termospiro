@@ -38,6 +38,19 @@ TSController::TSController(QWidget *parent):QMainWindow(parent)//,ui(new Ui::TSV
     m_calib_plotter = new CalibrationPkotterWidjet();
     ui.VolumePlotterWidget->layout()->addWidget(qobject_cast<QWidget*>(m_calib_plotter));
 
+
+    m_volumes_calc = new VolumeValuesCalc();
+
+    m_signal_analyzer = new SignalAnalyzer();
+
+    connect(m_signal_analyzer, SIGNAL(Inhalations(QVector<ing>)), m_volumes_calc, SLOT(setIngs(QVector<ing>)));
+
+
+    connect(m_volumes_calc, SIGNAL(signalParameters(parameters)), this, SLOT(setSignalParameters(parameters)));
+
+    connect(&m_exam_cntrl, SIGNAL(selectedExam(VTT_Data)), m_signal_analyzer, SLOT(setFullPatientData(VTT_Data)));
+
+
     curveBuffer.setReference(settings);
 
     recordingStarted = false;
@@ -75,6 +88,8 @@ TSController::TSController(QWidget *parent):QMainWindow(parent)//,ui(new Ui::TSV
     connect(ui.newExamButton,SIGNAL(clicked()),this,SLOT(createNewExam()));
     connect(ui.stopExam,SIGNAL(clicked()),this,SLOT(stopExam()));
 
+
+
     connect(&m_exam_cntrl, SIGNAL(selectedExam(VTT_Data)), this, SLOT(selectedExamination(VTT_Data)));
 
     connect(&m_exam_cntrl, SIGNAL(selectedExam(VTT_Data)), m_plotter_widjet, SLOT(setFullPatientGrapgicsData(VTT_Data)));
@@ -82,7 +97,7 @@ TSController::TSController(QWidget *parent):QMainWindow(parent)//,ui(new Ui::TSV
     connect(&m_exam_cntrl, SIGNAL(reset()), &curveBuffer, SLOT(clean()));
 
     connect(ui.breakExamButton,SIGNAL(clicked()),this,SLOT(breakExam()));
-    connect(ui.resultsButton,SIGNAL(clicked()),this,SLOT(processDataParams()));
+    //connect(ui.resultsButton,SIGNAL(clicked()),this,SLOT(processDataParams()));
 
     connect(ui.printButton,SIGNAL(clicked()),this,SLOT(printReport()));
 
@@ -256,6 +271,83 @@ void TSController::stopCalibration()
     ui.toutInfolabel->setVisible(false);
 
     qDebug()<<"Calib fin";
+}
+
+void TSController::setSignalParameters(parameters params)
+{
+    //    qDebug()<<"TSController::processDataParams";
+    qDebug()<<"this is result button !";
+    QTableWidget *qtw = ui.resultsTable;
+    qtw->setColumnCount(2);
+    qtw->setRowCount(12);
+    qtw->verticalHeader()->setVisible(false);
+    qtw->setHorizontalHeaderLabels(QString(tr("Параметр;Значение")).split(";"));
+    qtw->horizontalHeader()->setSectionResizeMode(QHeaderView::ResizeToContents);
+
+    float AvgExpirationSpeed=0, MaxExpirationSpeed=0, AvgExpirationTime=0, AvgInspirationTime=0,
+            AvgRoundTime=0, AvgTempIn=0, AvgTempOut=0, AvgTempInMinusAvgTempOut=0,  BreathingVolume=0, MVL=0, MinuteVentilation=0;
+    float InspirationFrequency = 0;
+
+//    QVector<int> volume = curveBuffer.volumeVector();
+//    QVector<int> temp_in = curveBuffer.tempInVector();
+//    QVector<int> temp_out = curveBuffer.tempOutVector();
+
+//    VolumeSolver* vs = new VolumeSolver(volume,temp_in,temp_out);
+
+    AvgExpirationSpeed = params.av_speed;//vs->getAverageExpirationSpeed();
+    qtw->setItem(1,0,getQTableWidgetItem(tr("Средняя скорость выдоха(л/с)")));
+    qtw->setItem(1,1,getQTableWidgetItem(QString::number(fabs(curveBuffer.volToLtr((int)AvgExpirationSpeed)))));
+
+    MaxExpirationSpeed = params.max_speed;//vs->getMaxExpirationSpeed();
+    qtw->setItem(2,0,getQTableWidgetItem(tr("Максимальная скорость выдоха(л/с)")));
+    qtw->setItem(2,1,getQTableWidgetItem(QString::number(fabs(curveBuffer.volToLtr((int)MaxExpirationSpeed)))));
+
+    AvgExpirationTime = params.av_out_time;//vs->getAverageExpirationTime();
+    qtw->setItem(3,0,getQTableWidgetItem(tr("Среднее время выдоха(с)")));
+    qtw->setItem(3,1,getQTableWidgetItem((QString::number((float)AvgExpirationTime))));
+
+    AvgInspirationTime = params.av_in_time;//vs->getAverageInspirationTime();
+    qtw->setItem(4,0,getQTableWidgetItem(tr("Среднее время вдоха(с)")));
+    qtw->setItem(4,1,getQTableWidgetItem((QString::number((float)AvgInspirationTime))));
+
+    AvgRoundTime = params.av_cycle_time;//vs->getAverageCycleTime();
+    qtw->setItem(5,0,getQTableWidgetItem(tr("Средняя время цикла(с)")));
+    qtw->setItem(5,1,getQTableWidgetItem((QString::number((float)AvgRoundTime))));
+
+    InspirationFrequency = params.freq;//vs->getInspirationFrequancyInOneMinute();
+    qtw->setItem(6,0,getQTableWidgetItem(tr("Частота дыхания(ед/мин)")));
+    qtw->setItem(6,1,getQTableWidgetItem((QString::number(InspirationFrequency))));
+
+    MinuteVentilation = params.av_speed;//vs->getMinuteVentilation();
+    qtw->setItem(8,0,getQTableWidgetItem(tr("Минутная вентиляция легких(л)")));
+    qtw->setItem(8,1,getQTableWidgetItem(QString::number(curveBuffer.volToLtr(MinuteVentilation))));
+
+    BreathingVolume = params.one_volume;//vs->getAverageInspiratonVentilation();
+    qtw->setItem(7,0,getQTableWidgetItem(tr("Дыхательный объем(л)")));
+    qtw->setItem(7,1,getQTableWidgetItem(QString::number(fabs(curveBuffer.volToLtr((int)BreathingVolume)))));
+
+    MVL = params.all_volume;//vs->getTotalVentilation();
+    qtw->setItem(9,0,getQTableWidgetItem(tr("Суммарная вентиляция легких(л)")));
+    qtw->setItem(9,1,getQTableWidgetItem(QString::number(fabs(curveBuffer.volToLtr((int)MVL)))));
+
+    //ga->clear();
+
+    /*AvgTempIn = vs->getAverageInspirationTempetature();
+    qtw->setItem(10,0,getQTableWidgetItem(tr("Средняя температура вдоха( 'C)")));
+    qtw->setItem(10,1,getQTableWidgetItem(QString::number(curveBuffer.tempInToDeg(AvgTempIn))));
+    //gai->clear();
+
+    AvgTempOut = vs->getAverageExpirationTempetature();
+    qtw->setItem(11,0,getQTableWidgetItem(tr("Средняя температура выдоха( 'C)")));
+    qtw->setItem(11,1,getQTableWidgetItem(QString::number(curveBuffer.tempOutToDeg(AvgTempOut))));
+
+    AvgTempInMinusAvgTempOut = AvgTempOut-AvgTempIn;
+    qtw->setItem(12,0,getQTableWidgetItem(tr("Средняя Твдоха-Средняя Твыдоха( 'C)")));
+    qtw->setItem(12,1,getQTableWidgetItem(curveBuffer.tempOutToDeg(AvgTempOut)-curveBuffer.tempInToDeg(AvgTempIn)));
+*/
+    qtw->removeRow(0);
+    qtw->show();
+    //delete vs;
 }
 
 void TSController::rejectColibration()

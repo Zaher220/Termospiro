@@ -12,7 +12,7 @@ class VolumeValuesCalc : public QObject
     Q_OBJECT
 public:
     explicit VolumeValuesCalc(QObject *parent = 0);
-    void setIngs(QVector<ing> ings);
+
     //void setRawData();
     parameters getParams();
     void setFrequancy(int Frequancy);
@@ -20,6 +20,7 @@ public:
 signals:
     void signalParameters(parameters);
 public slots:
+    void setIngs(QVector<ing> ings);
 private:
     double av_speed(QVector<ing> & ings);
     double max_speed(QVector<ing> & ings);

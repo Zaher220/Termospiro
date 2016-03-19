@@ -11,6 +11,7 @@ QT       += core \
 
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
+
 TARGET = Termospiro
 TEMPLATE = app
 
@@ -68,7 +69,8 @@ HEADERS  += \
     qcustomplot.h \
     calibrationpkotterwidjet.h \
     analyze/signalanalyzer.h \
-    analyze/volumevaluescalc.h
+    analyze/volumevaluescalc.h \
+    analyze/datatypes.h
 
 FORMS    += \
     colibrateDialog.ui \

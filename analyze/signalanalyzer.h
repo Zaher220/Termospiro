@@ -7,6 +7,7 @@
 #include <QTime>
 #include "datatypes.h"
 #include "volumevaluescalc.h"
+#include "examscontrollerl.h"
 
 class SignalAnalyzer : public QObject
 {
@@ -22,6 +23,7 @@ signals:
     void Inhalations(QVector<ing>);
 public slots:
     void addRawData(QVector<int> * signal);
+    void setFullPatientData(VTT_Data data);
 private:
     QVector<double> median(QVector<int> *signal, int start, int end, int period);
     void clearSignal(int start);
