@@ -7,10 +7,9 @@
 #include <math.h>
 #include <vector>
 #include "Rtusbapi.h"
-#include "src/datatypes.h"
+#include "datatypes.h"
 #include <QDebug>
 #include <QThread>
-
 
 class ADCDataReader: public QObject
 {
@@ -18,7 +17,6 @@ class ADCDataReader: public QObject
 public:
     explicit ADCDataReader(QObject *parent = 0);
     ~ADCDataReader();
-    //AdcDataMatrix getACQData();
     int getSamples_number() const;
     void setSamples_number(int samples_number);
     bool isReady();
@@ -29,8 +27,6 @@ public slots:
     void processADC();
 signals:
     void finished();
-
-
     //void sendACQData(AdcDataMatrix);
     void newData( ADCData );
     void done();
@@ -93,7 +89,7 @@ private:
     // флажок завершения потоков ввода данных
     bool IsThreadComplete = false;
 
-    char mod_name[8];
+    //char mod_name[8];
 
 
     HANDLE hMutex ;
@@ -101,7 +97,7 @@ private:
     int m_samples_count = 0;
     //AdcDataMatrix data = AdcDataMatrix(MaxVirtualSoltsQuantity);
     QThread *m_thread = nullptr;
-    char ss1[8] ;
+    char m_adc_name[8] ;
 };
 
 #endif

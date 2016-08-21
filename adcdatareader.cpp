@@ -8,13 +8,10 @@
 
 ADCDataReader::ADCDataReader(QObject *parent):QObject(parent)
 {
-    char ss[] = "usb3000";
-    strcpy(mod_name, ss);
-
     //!!!ReadBuffer1 = new SHORT[/*NBlockRead **/ DataStep];
     //!!!ReadBuffer2 = new SHORT[NBlockRead * DataStep];
     //!
-    strcpy(ss1, "usb3000");
+    strcpy(m_adc_name, "usb3000");
 }
 
 ADCDataReader::~ADCDataReader()
@@ -46,15 +43,11 @@ bool ADCDataReader::initADC()
     else
         printf(" Rtusbapi.dll Version --> OK\n");
 
-    // получим указатель на интерфейс модуля USB3000
-    char ss[] = "usb3000";    
-    char *module_name = ss1;
+    // получим указатель на интерфейс модуля USB3000    
+    char *module_name = m_adc_name;
 
-    //pModule = static_cast<IRTUSB3000 *>(RtCreateInstance(s));
-    //pModule = static_cast<IRTUSB3000 *>(RtCreateInstance("usb3000"));
     pModule = static_cast<IRTUSB3000 *>(RtCreateInstance(module_name));
-    char *ptr = mod_name;
-    //pModule = static_cast<IRTUSB3000 *>(RtCreateInstance(ptr));
+
     if (!pModule){
         TerminateApplication(" Module Interface --> Bad\n");
         return false;
@@ -470,15 +463,7 @@ void ADCDataReader::processADC()
 
         ADCData data;
 
-
-        for(int i=0; i<3; i++){
-            data.append(QVector<short>());
-        }
-
-
         while (is_acq_started && (m_samples_number == -1 || m_samples_count <= m_samples_number) ){
-            //for (i = 0x1; i < NBlockRead; i++)
-            //{
 
             RequestNumber ^= 0x1;
             // сделаем запрос на очередную порции данных
@@ -504,12 +489,12 @@ void ADCDataReader::processADC()
 
             if(i>=1){
                 for (int k = 0; k < DataStep/*!!!BytesTransferred[RequestNumber]*/; k += ChannaleQuantity){ //FIXME нужно получать 1 точку из 10 усреднением
-                    data[0].append(ReadBuffer[k]);
-                    data[1].append(ReadBuffer[k+1]);
-                    data[2].append(ReadBuffer[k+2]);
+                    data.data[0].append(ReadBuffer[k]);
+                    data.data[1].append(ReadBuffer[k+1]);
+                    data.data[2].append(ReadBuffer[k+2]);
                     //data[3].push_back(ReadBuffer[k+3]);
                 }
-                m_samples_count += data[0].size();
+                m_samples_count += data.data[0].size();
                 memset(ReadBuffer, 0, /*!!!NBlockRead **/ DataStep );
                 /*if (ReadBuffer == ReadBuffer1){
                     ReadBuffer = ReadBuffer2;
@@ -525,8 +510,7 @@ void ADCDataReader::processADC()
                 }*/
 
                 emit newData(data);
-                for(int k=0 ; k < data.size(); k++)
-                    data[k].clear();
+                data.clear();
             }
             i++;
             //i = 0x1;//почему не равно нулю
