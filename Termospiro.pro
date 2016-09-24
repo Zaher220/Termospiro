@@ -16,7 +16,7 @@ TARGET = Termospiro
 TEMPLATE = app
 
 #SUBDIRS += tsconsole
-include (tsconsole/tsconsole.pro)
+#include (tsconsole/tsconsole.pro)
 
 SOURCES += main.cpp\
     bdgod.cpp \
@@ -42,7 +42,12 @@ SOURCES += main.cpp\
     qcustomplot.cpp \
     calibrationpkotterwidjet.cpp \
     analyze/signalanalyzer.cpp \
-    analyze/volumevaluescalc.cpp
+    analyze/volumevaluescalc.cpp \
+    forms/researchwidget.cpp \
+    forms/startwidget.cpp \
+    forms/patientslistwidget.cpp \
+    forms/patientresearchslist.cpp \
+    forms/patientprofilewidget.cpp
 
 HEADERS  += \
     bdgod.h \
@@ -73,7 +78,12 @@ HEADERS  += \
     calibrationpkotterwidjet.h \
     analyze/signalanalyzer.h \
     analyze/volumevaluescalc.h \
-    analyze/datatypes.h
+    analyze/datatypes.h \
+    forms/researchwidget.h \
+    forms/startwidget.h \
+    forms/patientslistwidget.h \
+    forms/patientresearchslist.h \
+    forms/patientprofilewidget.h
 
 FORMS    += \
     colibrateDialog.ui \
@@ -84,7 +94,12 @@ FORMS    += \
     tsview.ui \
     tsvolsignalwidget.ui \
     plotterwidjet.ui \
-    calibrationpkotterwidjet.ui
+    calibrationpkotterwidjet.ui \
+    forms/researchwidget.ui \
+    forms/startwidget.ui \
+    forms/patientslistwidget.ui \
+    forms/patientresearchslist.ui \
+    forms/patientprofilewidget.ui
 
 RESOURCES += \
     iconResourse.qrc
