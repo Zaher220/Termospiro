@@ -1,25 +1,12 @@
 #include "ADCDataReader.h"
 
-/*DWORD WINAPI runACQ(void* Param)
-{
-    ADCDataReader* This = (ADCDataReader*)Param;
-    return This->ServiceReadThread();
-}*/
-
 ADCDataReader::ADCDataReader(QObject *parent):QObject(parent)
 {
-    //!!!ReadBuffer1 = new SHORT[/*NBlockRead **/ DataStep];
-    //!!!ReadBuffer2 = new SHORT[NBlockRead * DataStep];
-    //!
     strcpy(m_adc_name, "usb3000");
 }
 
 ADCDataReader::~ADCDataReader()
 {
-    /*if (is_acq_started)
-        stopADC();*/
-    //!!!delete[] ReadBuffer1;
-    //!!!delete[] ReadBuffer2;
 }
 
 bool ADCDataReader::initADC()
@@ -211,8 +198,6 @@ bool ADCDataReader::initADC()
 
 bool ADCDataReader::WaitingForRequestCompleted(OVERLAPPED *ReadOv, LPDWORD byte_N)
 {
-    DWORD ReadBytesTransferred;
-    int count = 100;
     while (true)
     {
         if ( !is_acq_started )
@@ -226,14 +211,7 @@ bool ADCDataReader::WaitingForRequestCompleted(OVERLAPPED *ReadOv, LPDWORD byte_
                 return false;
             }
             else{
-                //!!!count--;
-                //if (kbhit()){
-                //                if(count == 0){
-                //                    ThreadErrorNumber = 0x1;
-                //                    return false;
-                //                }
-                //}
-                //else
+
                 Sleep(20);
             }
     }
@@ -355,10 +333,7 @@ void ADCDataReader::startADC(int samples_number)
     // сбросим флаг ошибок потока ввода данных
     ThreadErrorNumber = 0x0;
 
-    //ReadBuffer = ReadBuffer1;
-
     // Создаем и запускаем поток сбора ввода данных из модуля
-
 
     m_thread->start();
 }
@@ -367,8 +342,6 @@ void ADCDataReader::stopADC()
 {
     is_acq_started = false;
 
-    /*if ( pModule != NULL )
-        pModule->STOP_READ();*/
     if ( m_thread != nullptr ){
         m_thread->quit();
         m_thread->wait();
@@ -392,21 +365,6 @@ void ADCDataReader::stopADC()
         // обнулим указатель на интерфейс модуля
         pModule = NULL;
     }
-
-
-
-    //TerminateApplication("fuck");
-
-
-    // если была ошибка - сообщим об этом
-    /*if (ThreadErrorNumber) {
-        TerminateApplication(NULL, false);
-        ShowThreadErrorMessage();
-    }
-    else {
-        printf("\n");
-        TerminateApplication("\n The program was completed successfully!!!\n", false);
-    }*/
 }
 
 void ADCDataReader::processADC()
@@ -480,10 +438,6 @@ void ADCDataReader::processADC()
                 break;
             }
 
-
-
-            //if ( i == NBlockRead ){
-            //for (int k = 0; k < DataStep * i; k += MaxVirtualSoltsQuantity){
             qDebug()<<"RequestNumber"<<RequestNumber;
             qDebug()<<"BytesTransferred"<< BytesTransferred[RequestNumber]<<DataStep;
 
@@ -496,26 +450,10 @@ void ADCDataReader::processADC()
                 }
                 m_samples_count += data.data[0].size();
                 memset(ReadBuffer, 0, /*!!!NBlockRead **/ DataStep );
-                /*if (ReadBuffer == ReadBuffer1){
-                    ReadBuffer = ReadBuffer2;
-                    memset(ReadBuffer2, 0, NBlockRead * DataStep );
-                    //i = 0x1;//почему не равно нулю
-                    i = 0x0;
-                }
-                else{
-                    ReadBuffer = ReadBuffer1;
-                    memset(ReadBuffer1, 0, NBlockRead * DataStep );
-                    //i = 0x1;//почему не равно нулю
-                    i = 0x0;
-                }*/
-
                 emit newData(data);
                 data.clear();
             }
             i++;
-            //i = 0x1;//почему не равно нулю
-            //i = 0x0;
-            //}
         }
 
         // ждём окончания операции сбора последней порции данных
@@ -544,32 +482,9 @@ void ADCDataReader::processADC()
     IsThreadComplete = true;
     // теперь можно воходить из потока сбора данных
 
-    // подчищаем интерфейс модуля
-    /*if (pModule != NULL){
-        // освободим интерфейс модуля
-        if (!pModule->ReleaseInstance())
-            printf(" ReleaseInstance() --> Bad\n");
-        else
-            printf(" ReleaseInstance() --> OK\n");
-        // обнулим указатель на интерфейс модуля
-        pModule = NULL;
-    }
-   is_acq_started = false;*/
-
     emit finished();
     return;
 }
-
-/*AdcDataMatrix ADCDataReader::getACQData()
-{
-    AdcDataMatrix tmp_data;
-    //WaitForSingleObject(hMutex, INFINITE);
-    tmp_data = data;
-    for (int i = 0; i < data.size(); i++)
-        data[i].clear();
-    // ReleaseMutex(hMutex);
-    return tmp_data;
-}*/
 
 bool ADCDataReader::isReady()
 {

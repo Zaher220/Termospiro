@@ -15,6 +15,9 @@ greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 TARGET = Termospiro
 TEMPLATE = app
 
+#SUBDIRS += tsconsole
+include (tsconsole/tsconsole.pro)
+
 SOURCES += main.cpp\
     bdgod.cpp \
     tsanalitics.cpp \
